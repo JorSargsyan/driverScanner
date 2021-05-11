@@ -16,6 +16,7 @@ target 'driverscanner' do
 
   pod 'RNPermissions', :path => '../node_modules/react-native-permissions'
 
+
   target 'driverscannerTests' do
     inherit! :complete
     # Pods for testing
