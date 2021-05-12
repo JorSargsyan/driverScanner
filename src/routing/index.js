@@ -1,24 +1,27 @@
 import React, {useEffect, useCallback} from 'react';
-import {ActivityIndicator, View, StyleSheet} from 'react-native';
 import {createStackNavigator} from '@react-navigation/stack';
-import ScannerScreen from '../screens/dashboard/scanner';
 import LoginScreen from '../screens/login';
 import DashboardScreen from '../screens/dashboard/main';
 import {useSelector, useDispatch} from 'react-redux';
-import {selectAuthStatus, selectIsLoading} from '../store/slicers/app';
+import {
+  selectAuthStatus,
+  selectIsLoading,
+  selectIsExpired,
+} from '../store/slicers/app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {setAuth, loadingStateOn, loadingStateOff} from '../store/slicers/app';
-
-const Loading = () => (
-  <View style={styles.loadingContainer}>
-    <ActivityIndicator size="large" color="white" />
-  </View>
-);
+import {
+  setAuth,
+  loadingStateOn,
+  loadingStateOff,
+  refreshToken,
+} from '../store/slicers/app';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 const Routes = () => {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(selectAuthStatus);
   const isLoading = useSelector(selectIsLoading);
+  const isExpired = useSelector(selectIsExpired);
   const RootStack = createStackNavigator();
   const DashboardStack = createStackNavigator();
 
@@ -31,45 +34,57 @@ const Routes = () => {
     dispatch(loadingStateOff());
   }, [dispatch]);
 
+  const executeRefreshToken = useCallback(async () => {
+    const data = await AsyncStorage.multiGet([
+      'accessToken',
+      'refreshToken',
+      'expDate',
+    ]);
+
+    const {meta, payload} = await dispatch(
+      refreshToken({accessToken: data[0][1], refreshToken: data[1][1]}),
+    );
+
+    if (meta.requestStatus !== 'fulfilled') {
+      return;
+    }
+
+    await AsyncStorage.multiSet([
+      ['accessToken', payload.accessToken],
+      ['expDate', payload.expDate.toString()],
+    ]);
+  }, [dispatch]);
+
   useEffect(() => {
     getToken();
   }, [getToken]);
+
+  useEffect(() => {
+    if (isExpired) {
+      executeRefreshToken();
+    }
+  }, [isExpired, executeRefreshToken]);
 
   const Dashboard = () => {
     return (
       <DashboardStack.Navigator headerMode="none">
         <DashboardStack.Screen name="Dashboard" component={DashboardScreen} />
-        <DashboardStack.Screen name="Scanner" component={ScannerScreen} />
       </DashboardStack.Navigator>
     );
   };
 
   return (
     <>
-      {!isLoading && (
-        <RootStack.Navigator headerMode="none">
-          {isAuthenticated ? (
-            <RootStack.Screen name="DashboardRoot" component={Dashboard} />
-          ) : (
-            <RootStack.Screen name="Login" component={LoginScreen} />
-          )}
-        </RootStack.Navigator>
-      )}
-      {isLoading && <Loading />}
+      <Spinner visible={isLoading} />
+      <RootStack.Navigator headerMode="none">
+        {isAuthenticated ? (
+          <RootStack.Screen name="DashboardRoot" component={Dashboard} />
+        ) : (
+          <RootStack.Screen name="Login" component={LoginScreen} />
+        )}
+      </RootStack.Navigator>
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    zIndex: 99,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    position: 'absolute',
-    height: '100%',
-    width: '100%',
-    alignContent: 'center',
-    justifyContent: 'center',
-  },
-});
 
 export default Routes;

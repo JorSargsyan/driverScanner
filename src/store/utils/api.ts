@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export const api = ({
   method,
   url,
@@ -16,14 +18,30 @@ export const api = ({
         body: JSON.stringify(body),
         headers: {
           'Content-Type': 'application/json',
+          Authorization: (await AsyncStorage.getItem('accessToken')) || '',
           ...headers,
         },
       });
 
+      console.log(body);
+
       if (response.ok) {
-        resolve(await response.json());
+        const result = await response.json();
+        console.log(result);
+        resolve(result);
       } else {
-        reject(response.json());
+        try {
+          const result = await response.json();
+          reject({
+            status: response.status,
+            data: result,
+          });
+        } catch (err) {
+          reject({
+            status: response.status,
+            data: err,
+          });
+        }
       }
     } catch (err) {
       reject(err);

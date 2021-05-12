@@ -6,11 +6,18 @@ import {api} from '../utils/api';
 export type IIdentityInitialState = {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isExpired: boolean;
 };
 
+export type IRefreshToken = {
+  accessToken: string;
+  expDate?: string;
+  refreshToken: string;
+};
 const initialState = {
   isAuthenticated: false,
   isLoading: false,
+  isExpired: false,
 };
 
 const name = 'APP';
@@ -26,16 +33,23 @@ export const authenticate = createAsyncThunk(
   },
 );
 
+export const refreshToken = createAsyncThunk(
+  `${name}/refreshToken`,
+  async ({accessToken, refreshToken}: IRefreshToken) => {
+    return api({
+      method: 'PUT',
+      body: {accessToken, refreshToken},
+      url: `${EBaseUrl.envApiIdentity}/Connect/Token`,
+    });
+  },
+);
+
 const appSlice = createSlice({
   name,
   initialState,
   reducers: {
     signOut(state) {
-      AsyncStorage.multiRemove(['accessToken', 'expDate', 'refreshToken']).then(
-        () => {
-          state.isAuthenticated = false;
-        },
-      );
+      state.isAuthenticated = false;
     },
     setAuth(state) {
       state.isAuthenticated = true;
@@ -46,17 +60,22 @@ const appSlice = createSlice({
     loadingStateOff(state) {
       state.isLoading = false;
     },
+    setIsExpired(state) {
+      state.isExpired = true;
+    },
   },
 });
 
 export const selectAuthStatus = (state: any) => state.app.isAuthenticated;
 export const selectIsLoading = (state: any) => state.app.isLoading;
+export const selectIsExpired = (state: any) => state.app.isExpired;
 
 export const {
   signOut,
   setAuth,
   loadingStateOff,
   loadingStateOn,
+  setIsExpired,
 } = appSlice.actions;
 
 export default appSlice.reducer;
