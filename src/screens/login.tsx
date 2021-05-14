@@ -62,7 +62,7 @@ export default ({navigation}): JSX.Element => {
         floatingPlaceholder
         placeholder="Գաղտնաբառ"
         value={state.password}
-        secureText
+        secureTextEntry
         onChangeText={handleChange('password')}
       />
       <View>

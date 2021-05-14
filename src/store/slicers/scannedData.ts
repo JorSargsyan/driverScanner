@@ -5,7 +5,7 @@ import {api} from '../utils/api';
 export type IScannedDataState = {
   shipment: string;
   expectedBundles: any[];
-  scannedBundleIds: number[];
+  scannedBundleIds: string[];
 };
 
 const initialState = {
@@ -22,7 +22,7 @@ export const acceptShipment = createAsyncThunk(
     return api({
       method: 'PUT',
       body: bundleIds,
-      url: `${EBaseUrl.envApiOrder}/Order/Accept`,
+      url: `${EBaseUrl.envApiLogistics}/Bundle/Accept/Tracking`,
     });
   },
   {
@@ -56,14 +56,7 @@ const scannedDataSlice = createSlice({
       state.expectedBundles = state.expectedBundles.filter(
         i => i.trackingId !== payload,
       );
-      const scannedBundle = state.expectedBundles.filter(
-        i => i.trackingId === payload,
-      );
-      if (!state.scannedBundleIds.includes(scannedBundle.id)) {
-        state.scannedBundleIds.push(scannedBundle.id);
-      } else {
-        alert('Bundle is already scanned!!');
-      }
+      state.scannedBundleIds.push(payload);
     },
     setExpectedBundles(state, {payload}) {
       state.expectedBundles = payload;
@@ -73,6 +66,7 @@ const scannedDataSlice = createSlice({
     builder.addCase(acceptShipment.fulfilled, state => {
       state.shipment = '';
       state.expectedBundles = [];
+      state.scannedBundleIds = [];
     });
   },
 });
@@ -80,6 +74,8 @@ const scannedDataSlice = createSlice({
 export const selectShipment = (state: any) => state.scannedData.shipment;
 export const selectExpectedBundlesList = (state: any) =>
   state.scannedData.expectedBundles;
+export const selectScannedBundleIds = (state: any) =>
+  state.scannedData.scannedBundleIds;
 
 export const {
   scanShipment,

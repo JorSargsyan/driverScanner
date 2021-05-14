@@ -1,5 +1,11 @@
-import React, {useRef, useEffect, useState} from 'react';
-import {StyleSheet, SafeAreaView, FlatList, Dimensions} from 'react-native';
+import React, {useRef, useState} from 'react';
+import {
+  StyleSheet,
+  SafeAreaView,
+  FlatList,
+  Dimensions,
+  Alert,
+} from 'react-native';
 import {Button, View, Text} from 'react-native-ui-lib';
 import {useSelector, useDispatch} from 'react-redux';
 import QRCodeScanner from 'react-native-qrcode-scanner';
@@ -13,6 +19,8 @@ import {
   scanShipment,
   scanBundle,
   setExpectedBundles,
+  acceptShipment,
+  selectScannedBundleIds,
 } from '../../store/slicers/scannedData';
 
 const plusIcon = require('../../assets/icons/plus.png');
@@ -45,22 +53,59 @@ const Main = () => {
   const dispatch = useDispatch();
   const shipment = useSelector(selectShipment);
   const expectedBundlesList = useSelector(selectExpectedBundlesList);
+  const bundleIds = useSelector(selectScannedBundleIds);
   const [isLoading, setIsLoading] = useState(false);
 
+  const resetScanner = () => {
+    setTimeout(() => {
+      scannerRef.current?.reactivate();
+    }, 3000);
+  };
+
   const onSuccess = async e => {
+    if (shipment && shipment === e.data) {
+      Alert.alert(
+        '',
+        'Shipment has already been scanned',
+        [{text: 'OK', onPress: resetScanner}],
+        {cancelable: false},
+      );
+      return;
+    }
     setIsLoading(true);
     const {meta, payload, error} = await dispatch(checkIsShipment(e.data));
 
     if (meta.requestStatus !== 'fulfilled') {
       if (error.data.key === 'shipment_not_found') {
         if (shipment) {
-          dispatch(scanBundle(e.data));
+          if (!bundleIds?.find(i => i === e.data)) {
+            dispatch(scanBundle(e.data));
+            setIsLoading(false);
+            resetScanner();
+            return;
+          } else {
+            Alert.alert(
+              '',
+              'Bundle has already been scanned',
+              [{text: 'OK', onPress: resetScanner}],
+              {cancelable: false},
+            );
+            setIsLoading(false);
+            return;
+          }
         } else {
-          alert('First scan Shipment code!');
+          Alert.alert(
+            '',
+            'First scan Shipment code!',
+            [{text: 'OK', onPress: resetScanner}],
+            {cancelable: false},
+          );
+          setIsLoading(false);
+          return;
         }
       }
       setIsLoading(false);
-      scannerRef.current?.reactivate();
+      resetScanner();
       return;
     }
 
@@ -68,39 +113,54 @@ const Main = () => {
       dispatch(scanShipment(e.data));
       dispatch(setExpectedBundles(payload));
       setIsLoading(false);
-      scannerRef.current?.reactivate();
+      resetScanner();
+    } else {
+      setIsLoading(false);
+
+      Alert.alert(
+        '',
+        'Shipment is empty',
+        [{text: 'OK', onPress: resetScanner}],
+        {cancelable: false},
+      );
     }
   };
 
   const handlePressSubmit = async () => {
-    dispatch(acceptShipment());
+    setIsLoading(true);
+    const {meta} = await dispatch(acceptShipment(bundleIds));
+
+    if (meta.requestStatus !== 'fulfilled') {
+      return;
+    }
+    setIsLoading(false);
+
+    Alert.alert(
+      '',
+      'Shipment is accepted',
+      [{text: 'OK', onPress: resetScanner}],
+      {cancelable: false},
+    );
   };
 
   return (
     <SafeAreaView>
       <Spinner visible={isLoading} />
       <View style={styles.cameraContainer}>
-        {/* <Button
-          label="ibr success"
-          labelStyle={styles.labelStyle}
-          enableShadow
-          iconSource={plusIcon}
-          iconStyle={styles.iconStyle}
-          onPress={onSuccess}
-        /> */}
         <QRCodeScanner
           ref={scannerRef}
-          showMarker
           onRead={onSuccess}
           flashMode={RNCamera.Constants.FlashMode.auto}
         />
       </View>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          {!!shipment && <Text style={styles.shipment}>{shipment}</Text>}
-          {expectedBundlesList.length ? (
-            <Counter length={expectedBundlesList.length} />
-          ) : null}
+          {!!shipment && (
+            <>
+              <Text style={styles.shipment}>{shipment}</Text>
+              <Counter length={expectedBundlesList?.length || 0} />
+            </>
+          )}
         </View>
         <View style={styles.flatList}>
           {expectedBundlesList.length ? (
@@ -110,7 +170,17 @@ const Main = () => {
               renderItem={({item}) => <OptionItem item={item} />}
               keyExtractor={item => item.id}
             />
-          ) : null}
+          ) : (
+            <>
+              {!!shipment && (
+                <View style={styles.noBundleContainer}>
+                  <Text style={styles.noBundleText}>
+                    All bundles are scanned
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
         </View>
         <Button
           disabled={!(expectedBundlesList.length === 0 && shipment)}
@@ -135,6 +205,13 @@ const styles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  noBundleContainer: {
+    alignItems: 'center',
+  },
+  noBundleText: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   flatList: {height: 200, paddingBottom: 20},
   counterText: {
