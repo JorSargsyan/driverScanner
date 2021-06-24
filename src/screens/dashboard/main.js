@@ -1,10 +1,13 @@
-import React, {useRef, useState} from 'react';
+import React, {useRef, useState, Fragment} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
   FlatList,
   Dimensions,
   Alert,
+  Modal,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import {Button, View, Text} from 'react-native-ui-lib';
 import {useSelector, useDispatch} from 'react-redux';
@@ -21,6 +24,8 @@ import {
   setExpectedBundles,
   acceptShipment,
   selectScannedBundleIds,
+  checkPossibleLocations,
+  deliveryShipment,
 } from '../../store/slicers/scannedData';
 
 const plusIcon = require('../../assets/icons/plus.png');
@@ -40,6 +45,18 @@ const OptionItem = ({item}) => {
   );
 };
 
+const WarehouseOptionItem = ({item, onPress}) => {
+  return (
+    <TouchableOpacity onPress={() => onPress(item.id)}>
+      <View style={styles.whOptionContainer}>
+        <View style={styles.optionTextWrapper}>
+          <Text style={styles.optionText}>{item.name}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const Counter = ({length}) => {
   return (
     <View style={styles.counter}>
@@ -48,13 +65,17 @@ const Counter = ({length}) => {
   );
 };
 
-const Main = () => {
+const Main = ({navigation, route}) => {
   const scannerRef = useRef();
   const dispatch = useDispatch();
   const shipment = useSelector(selectShipment);
   const expectedBundlesList = useSelector(selectExpectedBundlesList);
   const bundleIds = useSelector(selectScannedBundleIds);
   const [isLoading, setIsLoading] = useState(false);
+  const {mode} = route.params;
+  const [possibleWarehouses, setPossibleWarehouses] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedShipment, setSelectedShipment] = useState('');
 
   const resetScanner = () => {
     setTimeout(() => {
@@ -62,11 +83,11 @@ const Main = () => {
     }, 3000);
   };
 
-  const onSuccess = async e => {
+  const onAcceptSuccess = async e => {
     if (shipment && shipment === e.data) {
       Alert.alert(
         '',
-        'Shipment has already been scanned',
+        'Բեռը արդեն սկանավորված է',
         [{text: 'OK', onPress: resetScanner}],
         {cancelable: false},
       );
@@ -86,7 +107,7 @@ const Main = () => {
           } else {
             Alert.alert(
               '',
-              'Bundle has already been scanned',
+              'Ծանրոցը արդեն սկանավորված է ',
               [{text: 'OK', onPress: resetScanner}],
               {cancelable: false},
             );
@@ -96,7 +117,7 @@ const Main = () => {
         } else {
           Alert.alert(
             '',
-            'First scan Shipment code!',
+            'Անհրաժեշտ է սկանավորել բեռը',
             [{text: 'OK', onPress: resetScanner}],
             {cancelable: false},
           );
@@ -117,12 +138,37 @@ const Main = () => {
     } else {
       setIsLoading(false);
 
-      Alert.alert(
-        '',
-        'Shipment is empty',
-        [{text: 'OK', onPress: resetScanner}],
-        {cancelable: false},
-      );
+      Alert.alert('', 'Բեռը դատարկ է ', [{text: 'OK', onPress: resetScanner}], {
+        cancelable: false,
+      });
+    }
+  };
+
+  const onDeliverSuccess = async e => {
+    setIsLoading(true);
+    setSelectedShipment(e.data);
+    const {meta, payload} = await dispatch(checkPossibleLocations(e.data));
+
+    if (meta.requestStatus !== 'fulfilled') {
+      setIsLoading(false);
+      Alert.alert('', 'Համակարգի սխալ', [{text: 'OK', onPress: resetScanner}], {
+        cancelable: false,
+      });
+      return;
+    }
+
+    // console.log(payload);
+    setPossibleWarehouses(payload);
+    setModalVisible(true);
+
+    setIsLoading(false);
+  };
+
+  const onSuccess = async e => {
+    if (mode === 'accept') {
+      onAcceptSuccess(e);
+    } else {
+      onDeliverSuccess(e);
     }
   };
 
@@ -137,15 +183,76 @@ const Main = () => {
 
     Alert.alert(
       '',
-      'Shipment is accepted',
-      [{text: 'OK', onPress: resetScanner}],
+      'Բեռը ընդունված է',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            resetScanner();
+            navigation.navigate('StarterPage');
+          },
+        },
+      ],
       {cancelable: false},
+    );
+  };
+
+  const handleSelectWarehouse = async warehouseId => {
+    setModalVisible(false);
+    setIsLoading(true);
+    const {meta, payload} = await dispatch(
+      deliveryShipment({
+        shipmentTrackingId: selectedShipment,
+        warehouseId: warehouseId,
+      }),
+    );
+    if (meta.requestStatus !== 'fulfilled') {
+      setIsLoading(false);
+      Alert.alert('', 'Համակարգի սխալ', [{text: 'OK', onPress: resetScanner}], {
+        cancelable: false,
+      });
+      return;
+    }
+    setIsLoading(false);
+    Alert.alert(
+      '',
+      `Հանձնված բեռների քանակը - ${payload.bundlesCount}`,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            resetScanner();
+            navigation.navigate('StarterPage');
+          },
+        },
+      ],
+      {
+        cancelable: false,
+      },
     );
   };
 
   return (
     <SafeAreaView>
       <Spinner visible={isLoading} />
+      <Modal
+        animationType="slide"
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(!modalVisible);
+        }}>
+        <ScrollView style={styles.modalView}>
+          {possibleWarehouses?.map(item => {
+            return (
+              <WarehouseOptionItem
+                key={item.id}
+                onPress={handleSelectWarehouse}
+                item={item}
+              />
+            );
+          })}
+        </ScrollView>
+      </Modal>
       <View style={styles.cameraContainer}>
         <QRCodeScanner
           ref={scannerRef}
@@ -236,7 +343,14 @@ const styles = StyleSheet.create({
     width: 20,
   },
   optionContainer: {
-    backgroundColor: 'lightgray',
+    backgroundColor: '#e3e0e0',
+    marginBottom: 5,
+    shadowColor: 'gray',
+    elevation: 2,
+    padding: 10,
+  },
+  whOptionContainer: {
+    backgroundColor: '#e3e0e0',
     marginBottom: 5,
     shadowColor: 'gray',
     elevation: 2,
@@ -264,6 +378,10 @@ const styles = StyleSheet.create({
   optionTextWrapper: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
+  },
+  modalView: {
+    marginHorizontal: 10,
+    marginVertical: 30,
   },
 });
 

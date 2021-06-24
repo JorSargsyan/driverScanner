@@ -43,6 +43,27 @@ export const checkIsShipment = createAsyncThunk(
   },
 );
 
+export const checkPossibleLocations = createAsyncThunk(
+  `${name}/checkPossibleLocations`,
+  async (trackingNumber: string) => {
+    return api({
+      method: 'GET',
+      url: `${EBaseUrl.envApiLogistics}/Shipment/PossibleLocations/${trackingNumber}`,
+    });
+  },
+);
+
+export const deliveryShipment = createAsyncThunk(
+  `${name}/deliveryShipment`,
+  async formData => {
+    return api({
+      method: 'PUT',
+      url: `${EBaseUrl.envApiLogistics}/Shipment/Give`,
+      body: formData,
+    });
+  },
+);
+
 const scannedDataSlice = createSlice({
   name,
   initialState,

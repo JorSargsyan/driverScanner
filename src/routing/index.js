@@ -2,6 +2,7 @@ import React, {useEffect, useCallback} from 'react';
 import {createStackNavigator} from '@react-navigation/stack';
 import LoginScreen from '../screens/login';
 import DashboardScreen from '../screens/dashboard/main';
+import StarterScreen from '../screens/dashboard/starter';
 import {useSelector, useDispatch} from 'react-redux';
 import {
   selectAuthStatus,
@@ -68,6 +69,7 @@ const Routes = () => {
   const Dashboard = () => {
     return (
       <DashboardStack.Navigator headerMode="none">
+        <DashboardStack.Screen name="StarterPage" component={StarterScreen} />
         <DashboardStack.Screen name="Dashboard" component={DashboardScreen} />
       </DashboardStack.Navigator>
     );
