@@ -1,4 +1,4 @@
-import React, {useRef, useState, Fragment} from 'react';
+import React, {useRef, useState, useEffect} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -26,6 +26,7 @@ import {
   selectScannedBundleIds,
   checkPossibleLocations,
   deliveryShipment,
+  getUserByToken,
 } from '../../store/slicers/scannedData';
 
 const plusIcon = require('../../assets/icons/plus.png');

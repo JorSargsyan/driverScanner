@@ -1,4 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Alert} from 'react-native';
+import store from '..';
+import {ERRORS} from '../../assets/contants';
+import {refreshToken} from '../slicers/app';
 
 export const api = ({
   method,
@@ -32,6 +36,16 @@ export const api = ({
       } else {
         try {
           const result = await response.json();
+          if (result.key === 'expired_access_token') {
+            console.log('refresh token moment');
+            store.dispatch(
+              refreshToken({
+                accessToken: (await AsyncStorage.getItem('accessToken')) || '',
+                refreshToken:
+                  (await AsyncStorage.getItem('refreshToken')) || '',
+              }),
+            );
+          }
           reject({
             status: response.status,
             data: result,

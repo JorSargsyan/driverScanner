@@ -12,9 +12,23 @@ const initialState = {
   expectedBundles: [],
   scannedBundleIds: [],
   shipment: '',
+  consumer: null,
 };
 
 const name = 'SCANNED_DATA';
+
+export const getUserByToken = createAsyncThunk(
+  `${name}/getUserByToken`,
+  async () => {
+    return api({
+      url: `${EBaseUrl.envApiCustomer}/User`,
+      method: 'GET',
+    });
+  },
+  {
+    serializeError: error => error,
+  },
+);
 
 export const acceptShipment = createAsyncThunk(
   `${name}/acceptShipment`,
@@ -89,6 +103,9 @@ const scannedDataSlice = createSlice({
       state.expectedBundles = [];
       state.scannedBundleIds = [];
     });
+    builder.addCase(getUserByToken.fulfilled, (state, {payload}) => {
+      state.consumer = payload;
+    });
   },
 });
 
@@ -97,6 +114,7 @@ export const selectExpectedBundlesList = (state: any) =>
   state.scannedData.expectedBundles;
 export const selectScannedBundleIds = (state: any) =>
   state.scannedData.scannedBundleIds;
+export const selectConsumer = (state: any) => state.scannedData.consumer;
 
 export const {
   scanShipment,
