@@ -1,10 +1,12 @@
 import React, {useEffect} from 'react';
-import {StyleSheet} from 'react-native';
-import {Button, View, Text} from 'react-native-ui-lib';
+import {StyleSheet, View, TouchableOpacity} from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import {getUserByToken, selectConsumer} from '../../store/slicers/scannedData';
 import {signOut} from '../../store/slicers/app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Button, Text} from 'react-native-elements';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import {theme} from '../../../App';
 
 const StarterScreen = ({navigation}) => {
   const dispatch = useDispatch();
@@ -30,26 +32,31 @@ const StarterScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.logoutContainer} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Դուրս գալ</Text>
+        <Icon size={24} name="sign-out" color={theme.colors.secondary} />
+      </TouchableOpacity>
       {consumer?.roleId !== 30 ? (
         <React.Fragment>
           <Text>
-            Սխալ մուտքային տվյալներ,խնդրում ենք մուտք գործել Վարորդի տվյալներով
+            Սխալ մուտքային տվյալներ, խնդրում ենք մուտք գործել Վարորդի տվյալներով
           </Text>
         </React.Fragment>
       ) : (
-        <React.Fragment>
-          <Button style={styles.button} primaryColor onPress={handleAccept}>
-            <Text white>Ընդունել</Text>
-          </Button>
-          <Button style={styles.button} primaryColor onPress={handleDeliver}>
-            <Text white>Հանձնել</Text>
-          </Button>
-        </React.Fragment>
+        <View style={styles.buttonsGroup}>
+          <Button
+            containerStyle={styles.button}
+            title="Ընդունել Բեռնախումբ"
+            onPress={handleAccept}
+          />
+          <Button
+            containerStyle={styles.button}
+            title="Հանձնել Բեռնախումբ"
+            primaryColor
+            onPress={handleDeliver}
+          />
+        </View>
       )}
-
-      <Button style={styles.button} primaryColor onPress={handleLogout}>
-        <Text white>Դուրս գալ</Text>
-      </Button>
     </View>
   );
 };
@@ -59,10 +66,24 @@ export default StarterScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  contentContainer: {flex: 1},
+  buttonsGroup: {
+    flex: 1,
     justifyContent: 'center',
     marginHorizontal: 10,
   },
+  logoutContainer: {
+    paddingVertical: 30,
+    paddingHorizontal: 10,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  logoutText: {
+    marginRight: 10,
+  },
   button: {
-    marginBottom: 30,
+    marginVertical: 10,
   },
 });

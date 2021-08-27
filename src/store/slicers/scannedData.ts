@@ -1,17 +1,22 @@
 import {createAsyncThunk, createSlice} from '@reduxjs/toolkit';
+import {State} from 'react-native-gesture-handler';
 import {EBaseUrl} from '../models/enums/env.enum';
 import {api} from '../utils/api';
 
 export type IScannedDataState = {
-  shipment: string;
-  expectedBundles: any[];
-  scannedBundleIds: string[];
+  shipments: {
+    [key: string]: {
+      trackingId: string;
+      expectedBundles: any[];
+      scannedBundleIds: string[];
+      isCompleted: boolean;
+    };
+  };
+  consumer: any;
 };
 
 const initialState = {
-  expectedBundles: [],
-  scannedBundleIds: [],
-  shipment: '',
+  shipments: {},
   consumer: null,
 };
 
@@ -83,43 +88,46 @@ const scannedDataSlice = createSlice({
   initialState,
   reducers: {
     scanShipment(state, {payload}) {
-      state.shipment = payload;
-      state.expectedBundles = [];
-      state.scannedBundleIds = [];
+      state.shipments[payload] = {
+        trackingId: payload,
+        expectedBundles: [],
+        scannedBundleIds: [],
+        isCompleted: false,
+      };
     },
     scanBundle(state, {payload}) {
-      state.expectedBundles = state.expectedBundles.filter(
-        i => i.trackingId !== payload,
+      const actualShipment = state.shipments[payload.shipmentId];
+      actualShipment.expectedBundles = actualShipment.expectedBundles.filter(
+        i => i.trackingId !== payload.bundleId,
       );
-      state.scannedBundleIds.push(payload);
+      actualShipment.scannedBundleIds.push(payload.bundleId);
     },
     setExpectedBundles(state, {payload}) {
-      state.expectedBundles = payload;
+      const actualShipment = state.shipments[payload.shipmentId];
+      actualShipment.expectedBundles = payload.list;
+    },
+    setShipmentCompleted(state, {payload}) {
+      state.shipments[payload]
+        ? (state.shipments[payload].isCompleted = true)
+        : undefined;
     },
   },
   extraReducers: builder => {
-    builder.addCase(acceptShipment.fulfilled, state => {
-      state.shipment = '';
-      state.expectedBundles = [];
-      state.scannedBundleIds = [];
-    });
     builder.addCase(getUserByToken.fulfilled, (state, {payload}) => {
       state.consumer = payload;
     });
   },
 });
 
-export const selectShipment = (state: any) => state.scannedData.shipment;
-export const selectExpectedBundlesList = (state: any) =>
-  state.scannedData.expectedBundles;
-export const selectScannedBundleIds = (state: any) =>
-  state.scannedData.scannedBundleIds;
+export const selectShipments = (state: any) => state.scannedData.shipments;
 export const selectConsumer = (state: any) => state.scannedData.consumer;
+export const selectData = state => state.scannedData;
 
 export const {
   scanShipment,
   scanBundle,
   setExpectedBundles,
+  setShipmentCompleted,
 } = scannedDataSlice.actions;
 
 export default scannedDataSlice.reducer;

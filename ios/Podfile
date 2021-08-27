@@ -17,6 +17,8 @@ target 'driverscanner' do
   pod 'RNPermissions', :path => '../node_modules/react-native-permissions'
 
 
+  pod 'RNVectorIcons', :path => '../node_modules/react-native-vector-icons'
+
   target 'driverscannerTests' do
     inherit! :complete
     # Pods for testing

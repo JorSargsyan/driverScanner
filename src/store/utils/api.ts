@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {Alert} from 'react-native';
 import store from '..';
-import {ERRORS} from '../../assets/contants';
 import {refreshToken} from '../slicers/app';
 
 export const api = ({

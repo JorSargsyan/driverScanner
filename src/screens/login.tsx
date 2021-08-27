@@ -1,13 +1,12 @@
 import React, {useReducer} from 'react';
-import {StyleSheet} from 'react-native';
-import View from 'react-native-ui-lib/view';
-import TextField from 'react-native-ui-lib/textField';
-import Text from 'react-native-ui-lib/text';
-import Button from 'react-native-ui-lib/button';
+import {StyleSheet, View} from 'react-native';
 import {useDispatch} from 'react-redux';
 import {AppDispatch} from '../store';
 import {authenticate, setAuth} from '../store/slicers/app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {Button, Input, Image} from 'react-native-elements';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import {theme} from '../../App';
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -48,30 +47,30 @@ export default ({navigation}): JSX.Element => {
   };
 
   return (
-    <View flex centerV style={styles.container}>
-      <TextField
-        placeholder="Մուտքանուն"
-        floatingPlaceholder
-        floatOnFocus
-        value={state.userName}
-        onChangeText={handleChange('userName')}
-      />
-      <TextField
-        bg-primaryColor
-        floatOnFocus
-        floatingPlaceholder
-        placeholder="Գաղտնաբառ"
-        value={state.password}
-        secureTextEntry
-        onChangeText={handleChange('password')}
-      />
+    <View style={styles.container}>
+      <View style={styles.logoContainer}>
+        <Image style={styles.logo} source={require('../assets/logo.png')} />
+      </View>
       <View>
-        <Button
-          disabled={!state.userName || !state.password}
-          primaryColor
-          onPress={handleSubmit}>
-          <Text white>Մուտք գործել</Text>
-        </Button>
+        <Input
+          label="Մուտքանուն"
+          value={state.userName}
+          onChangeText={handleChange('userName')}
+          leftIcon={<Icon name="user" size={24} color={theme.colors.primary} />}
+        />
+        <Input
+          value={state.password}
+          label="Գաղտնաբառ"
+          secureTextEntry
+          onChangeText={handleChange('password')}
+          leftIcon={<Icon name="lock" size={24} color={theme.colors.primary} />}
+        />
+        <View>
+          <Button
+            disabled={!state.userName || !state.password}
+            title="Մուտք գործել"
+            onPress={handleSubmit}></Button>
+        </View>
       </View>
     </View>
   );
@@ -79,7 +78,16 @@ export default ({navigation}): JSX.Element => {
 
 const styles = StyleSheet.create({
   container: {
+    justifyContent: 'space-around',
+    flex: 1,
     marginVertical: 30,
     marginHorizontal: 15,
+  },
+  logoContainer: {
+    marginVertical: 10,
+  },
+  logo: {
+    height: 100,
+    resizeMode: 'contain',
   },
 });

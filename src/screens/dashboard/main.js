@@ -1,4 +1,4 @@
-import React, {useRef, useState, useEffect} from 'react';
+import React, {useRef, useState} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -8,25 +8,25 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
+  View,
 } from 'react-native';
-import {Button, View, Text} from 'react-native-ui-lib';
 import {useSelector, useDispatch} from 'react-redux';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import {RNCamera} from 'react-native-camera';
 import Spinner from 'react-native-loading-spinner-overlay';
+import {Text, Button, Input} from 'react-native-elements';
 
 import {
-  selectShipment,
-  selectExpectedBundlesList,
+  selectShipments,
   checkIsShipment,
   scanShipment,
   scanBundle,
   setExpectedBundles,
   acceptShipment,
-  selectScannedBundleIds,
   checkPossibleLocations,
   deliveryShipment,
-  getUserByToken,
+  setShipmentCompleted,
+  selectData,
 } from '../../store/slicers/scannedData';
 
 const plusIcon = require('../../assets/icons/plus.png');
@@ -69,14 +69,16 @@ const Counter = ({length}) => {
 const Main = ({navigation, route}) => {
   const scannerRef = useRef();
   const dispatch = useDispatch();
-  const shipment = useSelector(selectShipment);
-  const expectedBundlesList = useSelector(selectExpectedBundlesList);
-  const bundleIds = useSelector(selectScannedBundleIds);
+  const shipmentsData = useSelector(selectShipments);
   const [isLoading, setIsLoading] = useState(false);
   const {mode} = route.params;
   const [possibleWarehouses, setPossibleWarehouses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedShipment, setSelectedShipment] = useState('');
+  const [actualShipmentCode, setActualShipmentCode] = useState('');
+  const [manualCode, setManualCode] = useState('');
+  const storeData = useSelector(selectData);
+
+  console.log(storeData);
 
   const resetScanner = () => {
     setTimeout(() => {
@@ -85,10 +87,10 @@ const Main = ({navigation, route}) => {
   };
 
   const onAcceptSuccess = async e => {
-    if (shipment && shipment === e.data) {
+    if (shipmentsData?.[e.data] && shipmentsData?.[e.data].isAccepted) {
       Alert.alert(
         '',
-        'Բեռը արդեն սկանավորված է',
+        'Բեռը արդեն հաստատված է',
         [{text: 'OK', onPress: resetScanner}],
         {cancelable: false},
       );
@@ -99,9 +101,14 @@ const Main = ({navigation, route}) => {
 
     if (meta.requestStatus !== 'fulfilled') {
       if (error.data.key === 'shipment_not_found') {
-        if (shipment) {
-          if (!bundleIds?.find(i => i === e.data)) {
-            dispatch(scanBundle(e.data));
+        //Bundle Scanned
+        if (shipmentsData) {
+          if (
+            !shipmentsData[e.data]?.scannedBundleIds?.find(i => i === e.data)
+          ) {
+            dispatch(
+              scanBundle({shipmentId: actualShipmentCode, bundleId: e.data}),
+            );
             setIsLoading(false);
             resetScanner();
             return;
@@ -132,8 +139,25 @@ const Main = ({navigation, route}) => {
     }
 
     if (payload.length) {
+      if (
+        Object.values(shipmentsData).length &&
+        Object.values(shipmentsData).find(
+          i => !i.isCompleted && i.scannedBundleIds?.length,
+        )
+      ) {
+        Alert.alert(
+          '',
+          'Անհրաժեշտ է հաստատել ներկայիս բեռը',
+          [{text: 'OK', onPress: resetScanner}],
+          {cancelable: false},
+        );
+        setIsLoading(false);
+        resetScanner();
+        return;
+      }
       dispatch(scanShipment(e.data));
-      dispatch(setExpectedBundles(payload));
+      setActualShipmentCode(e.data);
+      dispatch(setExpectedBundles({list: payload, shipmentId: e.data}));
       setIsLoading(false);
       resetScanner();
     } else {
@@ -147,7 +171,6 @@ const Main = ({navigation, route}) => {
 
   const onDeliverSuccess = async e => {
     setIsLoading(true);
-    setSelectedShipment(e.data);
     const {meta, payload} = await dispatch(checkPossibleLocations(e.data));
 
     if (meta.requestStatus !== 'fulfilled') {
@@ -157,8 +180,7 @@ const Main = ({navigation, route}) => {
       });
       return;
     }
-
-    // console.log(payload);
+    setActualShipmentCode(e.data);
     setPossibleWarehouses(payload);
     setModalVisible(true);
 
@@ -175,13 +197,25 @@ const Main = ({navigation, route}) => {
 
   const handlePressSubmit = async () => {
     setIsLoading(true);
-    const {meta} = await dispatch(acceptShipment(bundleIds));
+    const {meta, error} = await dispatch(
+      acceptShipment(shipmentsData[actualShipmentCode]?.scannedBundleIds),
+    );
 
     if (meta.requestStatus !== 'fulfilled') {
+      const message =
+        error.data.key === 'please_scan_all_bundles'
+          ? 'Խնդրում ենք սկանավորել բոլոր պարկերը'
+          : 'Համակարգի սխալ';
+      Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
+        cancelable: false,
+      });
+      setIsLoading(false);
+      resetScanner();
       return;
     }
-    setIsLoading(false);
 
+    setIsLoading(false);
+    dispatch(setShipmentCompleted(actualShipmentCode));
     Alert.alert(
       '',
       'Բեռը ընդունված է',
@@ -203,7 +237,7 @@ const Main = ({navigation, route}) => {
     setIsLoading(true);
     const {meta, payload} = await dispatch(
       deliveryShipment({
-        shipmentTrackingId: selectedShipment,
+        shipmentTrackingId: actualShipmentCode,
         warehouseId: warehouseId,
       }),
     );
@@ -217,7 +251,7 @@ const Main = ({navigation, route}) => {
     setIsLoading(false);
     Alert.alert(
       '',
-      `Հանձնված բեռների քանակը - ${payload.bundlesCount}`,
+      `Հանձնված բեռների քանակը - ${payload?.length}`,
       [
         {
           text: 'OK',
@@ -263,36 +297,62 @@ const Main = ({navigation, route}) => {
       </View>
       <View style={styles.container}>
         <View style={styles.headerContainer}>
-          {!!shipment && (
+          {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
             <>
-              <Text style={styles.shipment}>{shipment}</Text>
-              <Counter length={expectedBundlesList?.length || 0} />
+              <Text style={styles.shipment}>
+                {shipmentsData?.[actualShipmentCode]?.trackingId}
+              </Text>
+              <Counter
+                length={
+                  shipmentsData?.[actualShipmentCode]?.expectedBundles
+                    ?.length || 0
+                }
+              />
             </>
           )}
         </View>
         <View style={styles.flatList}>
-          {expectedBundlesList.length ? (
+          {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
             <FlatList
               style={styles.flatList}
-              data={expectedBundlesList}
+              data={shipmentsData?.[actualShipmentCode]?.expectedBundles}
               renderItem={({item}) => <OptionItem item={item} />}
               keyExtractor={item => item.id}
             />
           ) : (
             <>
-              {!!shipment && (
+              {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
+              shipmentsData[actualShipmentCode]?.scannedBundleIds?.length ? (
                 <View style={styles.noBundleContainer}>
                   <Text style={styles.noBundleText}>
-                    All bundles are scanned
+                    Բոլոր պարկերը ընդունված են: Կարող եք հաստատել բեռնախումբը
                   </Text>
                 </View>
-              )}
+              ) : null}
             </>
           )}
         </View>
+        {/* <Input
+          label="Scan Shipments/Bundles manual"
+          value={manualCode}
+          onChangeText={setManualCode}
+        />
+
         <Button
-          disabled={!(expectedBundlesList.length === 0 && shipment)}
-          label="Հաստատել"
+          title="Manual Scan"
+          labelStyle={styles.labelStyle}
+          enableShadow
+          iconSource={plusIcon}
+          iconStyle={styles.iconStyle}
+          onPress={() => onSuccess({data: manualCode})}
+        /> */}
+        <Button
+          disabled={
+            !(
+              shipmentsData?.[actualShipmentCode]?.expectedBundles?.length === 0
+            )
+          }
+          title="Հաստատել"
           labelStyle={styles.labelStyle}
           enableShadow
           iconSource={plusIcon}
