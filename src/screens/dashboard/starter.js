@@ -17,17 +17,11 @@ const StarterScreen = ({navigation}) => {
   }, [dispatch]);
 
   const handleAccept = () => {
-    navigation.navigate('Dashboard', {mode: 'accept'});
+    navigation.navigate('Scan', {mode: 'accept'});
   };
 
   const handleDeliver = () => {
-    navigation.navigate('Dashboard', {mode: 'delivery'});
-  };
-
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem('accessToken');
-    await AsyncStorage.removeItem('refreshToken');
-    dispatch(signOut());
+    navigation.navigate('Scan', {mode: 'delivery'});
   };
 
   return (

@@ -1,8 +1,13 @@
 import React, {useEffect, useCallback} from 'react';
+import {createDrawerNavigator} from '@react-navigation/drawer';
 import {createStackNavigator} from '@react-navigation/stack';
+
 import LoginScreen from '../screens/login';
-import DashboardScreen from '../screens/dashboard/main';
-import StarterScreen from '../screens/dashboard/starter';
+import ScanScreen from '../screens/dashboard/scanScreen';
+import ShipmentScreen from '../screens/dashboard/shipment';
+import BundleScreen from '../screens/dashboard/bundle';
+import OrderScreen from '../screens/dashboard/order';
+
 import {useSelector, useDispatch} from 'react-redux';
 import {
   selectAuthStatus,
@@ -17,14 +22,16 @@ import {
   refreshToken,
 } from '../store/slicers/app';
 import Spinner from 'react-native-loading-spinner-overlay';
+import {theme} from '../../App';
 
 const Routes = () => {
   const dispatch = useDispatch();
   const isAuthenticated = useSelector(selectAuthStatus);
   const isLoading = useSelector(selectIsLoading);
   const isExpired = useSelector(selectIsExpired);
-  const RootStack = createStackNavigator();
-  const DashboardStack = createStackNavigator();
+  const Drawer = createDrawerNavigator();
+  const StackAuth = createStackNavigator();
+  const ShipmentStack = createStackNavigator();
 
   const getToken = useCallback(async () => {
     dispatch(loadingStateOn());
@@ -66,25 +73,58 @@ const Routes = () => {
     }
   }, [isExpired, executeRefreshToken]);
 
-  const Dashboard = () => {
+  const ShipmentNavigator = () => {
     return (
-      <DashboardStack.Navigator headerMode="none">
-        <DashboardStack.Screen name="StarterPage" component={StarterScreen} />
-        <DashboardStack.Screen name="Dashboard" component={DashboardScreen} />
-      </DashboardStack.Navigator>
+      <ShipmentStack.Navigator
+        initialRouteName="Shipment"
+        screenOptions={{headerShown: false}}>
+        <ShipmentStack.Screen name="Shipment" component={ShipmentScreen} />
+        <ShipmentStack.Screen name="Scan" component={ScanScreen} />
+      </ShipmentStack.Navigator>
+    );
+  };
+
+  const DrawerNavigator = () => {
+    return (
+      <Drawer.Navigator
+        initialRouteName="Shipment"
+        screenOptions={{
+          headerShown: false,
+          drawerActiveTintColor: theme.colors.primaryOpacity,
+        }}>
+        <Drawer.Screen
+          name="ShipmentRoot"
+          options={{
+            drawerLabel: 'Բեռնախմբեր',
+          }}
+          component={ShipmentNavigator}
+        />
+        <Drawer.Screen
+          name="Bundle"
+          options={{drawerLabel: 'Պարկեր'}}
+          component={BundleScreen}
+        />
+        <Drawer.Screen
+          name="Orders"
+          options={{drawerLabel: 'Առաքանիներ'}}
+          component={OrderScreen}
+        />
+      </Drawer.Navigator>
     );
   };
 
   return (
     <>
       <Spinner visible={isLoading} />
-      <RootStack.Navigator headerMode="none">
-        {isAuthenticated ? (
-          <RootStack.Screen name="DashboardRoot" component={Dashboard} />
-        ) : (
-          <RootStack.Screen name="Login" component={LoginScreen} />
-        )}
-      </RootStack.Navigator>
+      {isAuthenticated ? (
+        <DrawerNavigator name="Dashboard" />
+      ) : (
+        <StackAuth.Navigator
+          initialRouteName="Login"
+          screenOptions={{headerShown: false}}>
+          <StackAuth.Screen name="Login" component={LoginScreen} />
+        </StackAuth.Navigator>
+      )}
     </>
   );
 };

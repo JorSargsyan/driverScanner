@@ -1,28 +1,44 @@
 import React from 'react';
-import {StyleSheet} from 'react-native';
-import {View, Text} from 'react-native';
+import {Header} from 'react-native-elements';
+import {useDispatch} from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {signOut} from '../../../store/slicers/app';
+import {Alert} from 'react-native';
 
-const Header = ({title}) => {
+const HeaderDS = ({title, left}) => {
+  const dispatch = useDispatch();
+  const handleLogout = () => {
+    Alert.alert('Ուշադրություն', 'Ցանկանում եք դուրս գալ համակարգից:', [
+      {
+        text: 'Ոչ',
+      },
+      {
+        text: 'Այո',
+        onPress: async () => {
+          await AsyncStorage.removeItem('accessToken');
+          await AsyncStorage.removeItem('refreshToken');
+          dispatch(signOut());
+        },
+      },
+    ]);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-    </View>
+    <Header
+      leftComponent={
+        left
+          ? {icon: left.icon, color: '#fff', onPress: left.onPress}
+          : undefined
+      }
+      centerComponent={{text: title, style: {color: '#fff', fontSize: 18}}}
+      rightComponent={{
+        icon: 'logout',
+        color: '#fff',
+        title: 'Դուրս գալ',
+        onPress: handleLogout,
+      }}
+    />
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    height: 50,
-    justifyContent: 'center',
-    borderBottomColor: 'lightgray',
-    borderBottomWidth: 1,
-    marginBottom: 15,
-  },
-  title: {
-    fontSize: 24,
-  },
-});
-
-export default Header;
+export default HeaderDS;

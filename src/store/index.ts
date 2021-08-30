@@ -1,12 +1,14 @@
 import {Action, combineReducers, configureStore} from '@reduxjs/toolkit';
 import appReducer from './slicers/app';
 import scannedDataReducer from './slicers/scannedData';
+import shipmentReducer from './slicers/shipment';
 import Reactotron from '../../ReactotronConfig';
 import errorHandling from './middleware/errorHandle';
 
 const combinedReducers = combineReducers({
   app: appReducer,
   scannedData: scannedDataReducer,
+  shipment: shipmentReducer,
 });
 
 const rootReducer = (state: any | undefined, action: Action) =>

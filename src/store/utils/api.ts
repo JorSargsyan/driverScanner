@@ -25,17 +25,13 @@ export const api = ({
         },
       });
 
-      console.log(body);
-
       if (response.ok) {
         const result = await response.json();
-        console.log(result);
         resolve(result);
       } else {
         try {
           const result = await response.json();
           if (result.key === 'expired_access_token') {
-            console.log('refresh token moment');
             store.dispatch(
               refreshToken({
                 accessToken: (await AsyncStorage.getItem('accessToken')) || '',

@@ -13,8 +13,9 @@ import {
 import {useSelector, useDispatch} from 'react-redux';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import {RNCamera} from 'react-native-camera';
+
 import Spinner from 'react-native-loading-spinner-overlay';
-import {Text, Button, Input} from 'react-native-elements';
+import {Text, Button, Input, ListItem} from 'react-native-elements';
 
 import {
   selectShipments,
@@ -26,23 +27,22 @@ import {
   checkPossibleLocations,
   deliveryShipment,
   setShipmentCompleted,
-  selectData,
 } from '../../store/slicers/scannedData';
 
 const plusIcon = require('../../assets/icons/plus.png');
 
 const OptionItem = ({item}) => {
   return (
-    <View style={styles.optionContainer}>
-      <View style={styles.optionTextWrapper}>
-        <Text style={styles.optionText}>Tracking Code: </Text>
-        <Text style={styles.optionTextBold}>{item.trackingId}</Text>
-      </View>
-      <View style={styles.optionTextWrapper}>
-        <Text style={styles.optionText}>Total Weigth: </Text>
-        <Text style={styles.optionTextBold}>{item.totalWeight}</Text>
-      </View>
-    </View>
+    <ListItem key={item.id} bottomDivider>
+      <ListItem.Content>
+        <ListItem.Subtitle>Հետևման կոդ</ListItem.Subtitle>
+        <ListItem.Title>{item.trackingId}</ListItem.Title>
+      </ListItem.Content>
+      <ListItem.Content>
+        <ListItem.Subtitle>Քաշ</ListItem.Subtitle>
+        <ListItem.Title>{item.totalWeight}</ListItem.Title>
+      </ListItem.Content>
+    </ListItem>
   );
 };
 
@@ -66,19 +66,16 @@ const Counter = ({length}) => {
   );
 };
 
-const Main = ({navigation, route}) => {
+const ScanScreen = ({navigation, route}) => {
   const scannerRef = useRef();
   const dispatch = useDispatch();
+  const [manualCode, setManualCode] = useState('');
   const shipmentsData = useSelector(selectShipments);
   const [isLoading, setIsLoading] = useState(false);
   const {mode} = route.params;
   const [possibleWarehouses, setPossibleWarehouses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [actualShipmentCode, setActualShipmentCode] = useState('');
-  const [manualCode, setManualCode] = useState('');
-  const storeData = useSelector(selectData);
-
-  console.log(storeData);
 
   const resetScanner = () => {
     setTimeout(() => {
@@ -224,7 +221,7 @@ const Main = ({navigation, route}) => {
           text: 'OK',
           onPress: () => {
             resetScanner();
-            navigation.navigate('StarterPage');
+            navigation.navigate('Shipment');
           },
         },
       ],
@@ -257,7 +254,7 @@ const Main = ({navigation, route}) => {
           text: 'OK',
           onPress: () => {
             resetScanner();
-            navigation.navigate('StarterPage');
+            navigation.navigate('Shipment');
           },
         },
       ],
@@ -446,4 +443,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Main;
+export default ScanScreen;

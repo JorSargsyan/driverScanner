@@ -1,8 +1,13 @@
-import React, {useReducer} from 'react';
+import React, {useReducer, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {useDispatch} from 'react-redux';
 import {AppDispatch} from '../store';
-import {authenticate, setAuth} from '../store/slicers/app';
+import {
+  authenticate,
+  loadingStateOff,
+  loadingStateOn,
+  setAuth,
+} from '../store/slicers/app';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Button, Input, Image} from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -31,9 +36,11 @@ export default ({navigation}): JSX.Element => {
   };
 
   const handleSubmit = async () => {
+    dispatch(loadingStateOn());
     const {meta, payload} = await dispatch(authenticate(state));
     if (meta.requestStatus !== 'fulfilled') {
       alert('Մուտք գործել չհաջողվեց, փորձեք նորից');
+      dispatch(loadingStateOff());
       return;
     }
 
@@ -44,6 +51,7 @@ export default ({navigation}): JSX.Element => {
     ]);
 
     await dispatch(setAuth(payload));
+    dispatch(loadingStateOff());
   };
 
   return (
