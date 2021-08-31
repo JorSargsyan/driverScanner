@@ -28,6 +28,7 @@ import {
   deliveryShipment,
   setShipmentCompleted,
 } from '../../store/slicers/scannedData';
+import {getShipments} from '../../store/slicers/shipment';
 
 const plusIcon = require('../../assets/icons/plus.png');
 
@@ -219,8 +220,9 @@ const ScanScreen = ({navigation, route}) => {
       [
         {
           text: 'OK',
-          onPress: () => {
+          onPress: async () => {
             resetScanner();
+            await dispatch(getShipments());
             navigation.navigate('Shipment');
           },
         },

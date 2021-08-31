@@ -6,7 +6,6 @@ import LoginScreen from '../screens/login';
 import ScanScreen from '../screens/dashboard/scanScreen';
 import ShipmentScreen from '../screens/dashboard/shipment';
 import BundleScreen from '../screens/dashboard/bundle';
-import OrderScreen from '../screens/dashboard/order';
 
 import {useSelector, useDispatch} from 'react-redux';
 import {
@@ -104,21 +103,19 @@ const Routes = () => {
           options={{drawerLabel: 'Պարկեր'}}
           component={BundleScreen}
         />
-        <Drawer.Screen
+        {/* <Drawer.Screen
           name="Orders"
           options={{drawerLabel: 'Առաքանիներ'}}
           component={OrderScreen}
-        />
+        /> */}
       </Drawer.Navigator>
     );
   };
 
   return (
     <>
-      <Spinner visible={isLoading} />
-      {isAuthenticated ? (
-        <DrawerNavigator name="Dashboard" />
-      ) : (
+      {isAuthenticated && <DrawerNavigator name="Dashboard" />}
+      {!isAuthenticated && (
         <StackAuth.Navigator
           initialRouteName="Login"
           screenOptions={{headerShown: false}}>
