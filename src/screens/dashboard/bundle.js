@@ -48,8 +48,10 @@ const Shipment = ({navigation}) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     marginHorizontal: 10,
     marginTop: 30,
+    marginBottom: 30,
   },
   title: {
     fontSize: 18,

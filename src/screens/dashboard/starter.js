@@ -9,12 +9,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import {theme} from '../../../App';
 
 const StarterScreen = ({navigation}) => {
-  const dispatch = useDispatch();
   const consumer = useSelector(selectConsumer);
-
-  useEffect(() => {
-    dispatch(getUserByToken());
-  }, [dispatch]);
 
   const handleAccept = () => {
     navigation.navigate('Scan', {mode: 'accept'});

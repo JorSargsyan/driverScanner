@@ -1,4 +1,4 @@
-import React, {useRef, useState} from 'react';
+import React, {useRef, useState, Fragment} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -7,12 +7,16 @@ import {
   Alert,
   Modal,
   TouchableOpacity,
+  KeyboardAvoidingView,
   ScrollView,
   View,
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
 import QRCodeScanner from 'react-native-qrcode-scanner';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 import {RNCamera} from 'react-native-camera';
+import {theme} from '../../../App';
 
 import Spinner from 'react-native-loading-spinner-overlay';
 import {Text, Button, Input, ListItem} from 'react-native-elements';
@@ -76,6 +80,7 @@ const ScanScreen = ({navigation, route}) => {
   const {mode} = route.params;
   const [possibleWarehouses, setPossibleWarehouses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
+  const [manualModalVisible, setManualModalVisible] = useState(false);
   const [actualShipmentCode, setActualShipmentCode] = useState('');
 
   const resetScanner = () => {
@@ -109,6 +114,8 @@ const ScanScreen = ({navigation, route}) => {
             );
             setIsLoading(false);
             resetScanner();
+            setManualCode('');
+            setManualModalVisible(false);
             return;
           } else {
             Alert.alert(
@@ -158,6 +165,8 @@ const ScanScreen = ({navigation, route}) => {
       dispatch(setExpectedBundles({list: payload, shipmentId: e.data}));
       setIsLoading(false);
       resetScanner();
+      setManualCode('');
+      setManualModalVisible(false);
     } else {
       setIsLoading(false);
 
@@ -173,7 +182,8 @@ const ScanScreen = ({navigation, route}) => {
 
     if (meta.requestStatus !== 'fulfilled') {
       setIsLoading(false);
-      Alert.alert('', 'Համակարգի սխալ', [{text: 'OK', onPress: resetScanner}], {
+      const message = 'empty_shipment' ? 'Դատարկ բեռնախումբ' : 'Համակարգի սխալ';
+      Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
         cancelable: false,
       });
       return;
@@ -267,103 +277,161 @@ const ScanScreen = ({navigation, route}) => {
   };
 
   return (
-    <SafeAreaView>
-      <Spinner visible={isLoading} />
+    <KeyboardAvoidingView behavior="height">
+      <SafeAreaView>
+        <Spinner visible={isLoading} />
+        <Modal
+          animationType="slide"
+          visible={modalVisible}
+          onRequestClose={() => {
+            setModalVisible(!modalVisible);
+          }}>
+          <ScrollView style={styles.modalView}>
+            {possibleWarehouses?.map(item => {
+              return (
+                <WarehouseOptionItem
+                  key={item.id}
+                  onPress={handleSelectWarehouse}
+                  item={item}
+                />
+              );
+            })}
+          </ScrollView>
+        </Modal>
+        <View style={styles.cameraContainer}>
+          <QRCodeScanner
+            ref={scannerRef}
+            onRead={onSuccess}
+            flashMode={RNCamera.Constants.FlashMode.auto}
+          />
+        </View>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
+              <>
+                <Text style={styles.shipment}>
+                  {shipmentsData?.[actualShipmentCode]?.trackingId}
+                </Text>
+                <Counter
+                  length={
+                    shipmentsData?.[actualShipmentCode]?.expectedBundles
+                      ?.length || 0
+                  }
+                />
+              </>
+            )}
+          </View>
+          <View style={styles.flatList}>
+            {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
+              <FlatList
+                style={styles.flatList}
+                data={shipmentsData?.[actualShipmentCode]?.expectedBundles}
+                renderItem={({item}) => <OptionItem item={item} />}
+                keyExtractor={item => item.id}
+              />
+            ) : (
+              <>
+                {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
+                shipmentsData[actualShipmentCode]?.scannedBundleIds?.length ? (
+                  <View style={styles.noBundleContainer}>
+                    <Text style={styles.noBundleText}>
+                      Բոլոր պարկերը ընդունված են: Կարող եք հաստատել բեռնախումբը
+                    </Text>
+                  </View>
+                ) : null}
+              </>
+            )}
+          </View>
+          <View style={styles.manualScanBtnContainer}>
+            <Button
+              labelStyle={styles.labelStyle}
+              enableShadow
+              title="Մուտքագրել կոդը"
+              onPress={() => setManualModalVisible(true)}
+            />
+          </View>
+
+          <Button
+            disabled={
+              !(
+                shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ===
+                0
+              )
+            }
+            title="Հաստատել"
+            labelStyle={styles.labelStyle}
+            enableShadow
+            iconSource={plusIcon}
+            iconStyle={styles.iconStyle}
+            onPress={handlePressSubmit}
+          />
+        </View>
+      </SafeAreaView>
       <Modal
         animationType="slide"
-        visible={modalVisible}
+        transparent={true}
+        style={styles.modalContainer}
+        visible={manualModalVisible}
         onRequestClose={() => {
-          setModalVisible(!modalVisible);
+          setManualModalVisible(false);
         }}>
-        <ScrollView style={styles.modalView}>
-          {possibleWarehouses?.map(item => {
-            return (
-              <WarehouseOptionItem
-                key={item.id}
-                onPress={handleSelectWarehouse}
-                item={item}
-              />
-            );
-          })}
-        </ScrollView>
-      </Modal>
-      <View style={styles.cameraContainer}>
-        <QRCodeScanner
-          ref={scannerRef}
-          onRead={onSuccess}
-          flashMode={RNCamera.Constants.FlashMode.auto}
-        />
-      </View>
-      <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
-            <>
-              <Text style={styles.shipment}>
-                {shipmentsData?.[actualShipmentCode]?.trackingId}
-              </Text>
-              <Counter
-                length={
-                  shipmentsData?.[actualShipmentCode]?.expectedBundles
-                    ?.length || 0
-                }
-              />
-            </>
-          )}
-        </View>
-        <View style={styles.flatList}>
-          {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
-            <FlatList
-              style={styles.flatList}
-              data={shipmentsData?.[actualShipmentCode]?.expectedBundles}
-              renderItem={({item}) => <OptionItem item={item} />}
-              keyExtractor={item => item.id}
+        <View style={styles.modal}>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => {
+              setManualModalVisible(false);
+            }}>
+            <Text style={styles.addButtonText}>
+              <Icon name="close" size={40} color={theme.colors.primary} />
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.modalTitle}>
+            Մուտքագրեք բեռնախմբի կամ պարկի հետևման կոդը
+          </Text>
+          <View style={styles.footer}>
+            <Input
+              label="Բեռնախումբ/Պարկ"
+              value={manualCode}
+              onChangeText={text => setManualCode(text.toUpperCase())}
             />
-          ) : (
-            <>
-              {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
-              shipmentsData[actualShipmentCode]?.scannedBundleIds?.length ? (
-                <View style={styles.noBundleContainer}>
-                  <Text style={styles.noBundleText}>
-                    Բոլոր պարկերը ընդունված են: Կարող եք հաստատել բեռնախումբը
-                  </Text>
-                </View>
-              ) : null}
-            </>
-          )}
+            <Button
+              title="Սկանավորել"
+              labelStyle={styles.labelStyle}
+              enableShadow
+              iconSource={plusIcon}
+              iconStyle={styles.iconStyle}
+              onPress={() => onSuccess({data: manualCode.toUpperCase()})}
+            />
+          </View>
         </View>
-        {/* <Input
-          label="Scan Shipments/Bundles manual"
-          value={manualCode}
-          onChangeText={setManualCode}
-        />
-
-        <Button
-          title="Manual Scan"
-          labelStyle={styles.labelStyle}
-          enableShadow
-          iconSource={plusIcon}
-          iconStyle={styles.iconStyle}
-          onPress={() => onSuccess({data: manualCode})}
-        /> */}
-        <Button
-          disabled={
-            !(
-              shipmentsData?.[actualShipmentCode]?.expectedBundles?.length === 0
-            )
-          }
-          title="Հաստատել"
-          labelStyle={styles.labelStyle}
-          enableShadow
-          iconSource={plusIcon}
-          iconStyle={styles.iconStyle}
-          onPress={handlePressSubmit}
-        />
-      </View>
-    </SafeAreaView>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  modalContainer: {
+    justifyContent: 'center',
+  },
+  modal: {
+    height: '100%',
+    paddingHorizontal: 10,
+    backgroundColor: 'white',
+  },
+  manualScanBtnContainer: {
+    marginBottom: 10,
+  },
+  addButton: {
+    padding: 10,
+    display: 'flex',
+    flexDirection: 'row-reverse',
+  },
+  modalTitle: {
+    paddingTop: '40%',
+    fontSize: 20,
+    textAlign: 'center',
+    marginBottom: 40,
+  },
   counter: {
     backgroundColor: 'red',
     height: 30,

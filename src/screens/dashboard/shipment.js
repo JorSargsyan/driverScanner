@@ -3,6 +3,7 @@ import {View, Text, StyleSheet, SafeAreaView, FlatList} from 'react-native';
 import {SpeedDial} from 'react-native-elements';
 import {useSelector, useDispatch} from 'react-redux';
 import {selectShipments, getShipments} from '../../store/slicers/shipment';
+import {getUserByToken} from '../../store/slicers/scannedData';
 import HeaderDS from '../../components/ui/header';
 import {theme} from '../../../App';
 import Item from '../../components/shared/ListItem';
@@ -23,6 +24,7 @@ const Shipment = ({navigation}) => {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    dispatch(getUserByToken());
     dispatch(getShipments());
   }, [dispatch]);
 
@@ -37,9 +39,7 @@ const Shipment = ({navigation}) => {
   };
 
   const handleAccept = () => {
-    navigation.navigate('Scan', {
-      params: {mode: 'accept'},
-    });
+    navigation.navigate('Scan', {mode: 'accept'});
   };
 
   const handleDeliver = () => {
@@ -97,8 +97,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   container: {
+    flex: 1,
     marginHorizontal: 10,
     marginTop: 30,
+    marginBottom: 30,
   },
   title: {
     fontSize: 18,
