@@ -178,11 +178,16 @@ const ScanScreen = ({navigation, route}) => {
 
   const onDeliverSuccess = async e => {
     setIsLoading(true);
-    const {meta, payload} = await dispatch(checkPossibleLocations(e.data));
+    const {meta, payload, error} = await dispatch(
+      checkPossibleLocations(e.data),
+    );
 
     if (meta.requestStatus !== 'fulfilled') {
       setIsLoading(false);
-      const message = 'empty_shipment' ? 'Դատարկ բեռնախումբ' : 'Համակարգի սխալ';
+      const message =
+        error.data.key === 'empty_shipment'
+          ? 'Դատարկ բեռնախումբ'
+          : error.data.key;
       Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
         cancelable: false,
       });
@@ -213,7 +218,7 @@ const ScanScreen = ({navigation, route}) => {
       const message =
         error.data.key === 'please_scan_all_bundles'
           ? 'Խնդրում ենք սկանավորել բոլոր պարկերը'
-          : 'Համակարգի սխալ';
+          : error.data.key;
       Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
         cancelable: false,
       });
@@ -244,7 +249,7 @@ const ScanScreen = ({navigation, route}) => {
   const handleSelectWarehouse = async warehouseId => {
     setModalVisible(false);
     setIsLoading(true);
-    const {meta, payload} = await dispatch(
+    const {meta, payload, error} = await dispatch(
       deliveryShipment({
         shipmentTrackingId: actualShipmentCode,
         warehouseId: warehouseId,
@@ -252,7 +257,7 @@ const ScanScreen = ({navigation, route}) => {
     );
     if (meta.requestStatus !== 'fulfilled') {
       setIsLoading(false);
-      Alert.alert('', 'Համակարգի սխալ', [{text: 'OK', onPress: resetScanner}], {
+      Alert.alert('', error.data.key, [{text: 'OK', onPress: resetScanner}], {
         cancelable: false,
       });
       return;
