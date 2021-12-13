@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
 import QRCodeScanner from 'react-native-qrcode-scanner';
+
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 import {RNCamera} from 'react-native-camera';
@@ -69,6 +70,13 @@ const Counter = ({length}) => {
       <Text style={styles.counterText}>{length}</Text>
     </View>
   );
+};
+
+const errorMessages = {
+  shipment_not_found: 'Բեռնախումբը չի գտնվել',
+  empty_shipment: 'Դատարկ բեռնախումբ',
+  shipment_is_in_another_location:
+    'Բեռնախումբը արդեն հանձնված է կամ գտնվում է այլ վայրում',
 };
 
 const ScanScreen = ({navigation, route}) => {
@@ -184,10 +192,8 @@ const ScanScreen = ({navigation, route}) => {
 
     if (meta.requestStatus !== 'fulfilled') {
       setIsLoading(false);
-      const message =
-        error.data.key === 'empty_shipment'
-          ? 'Դատարկ բեռնախումբ'
-          : error.data.key;
+      const message = errorMessages[error.data?.key] || error.data?.key;
+
       Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
         cancelable: false,
       });
@@ -269,8 +275,9 @@ const ScanScreen = ({navigation, route}) => {
       [
         {
           text: 'OK',
-          onPress: () => {
+          onPress: async () => {
             resetScanner();
+            await dispatch(getShipments());
             navigation.navigate('Shipment');
           },
         },
@@ -290,6 +297,7 @@ const ScanScreen = ({navigation, route}) => {
           visible={modalVisible}
           onRequestClose={() => {
             setModalVisible(!modalVisible);
+            resetScanner();
           }}>
           <ScrollView style={styles.modalView}>
             {possibleWarehouses?.map(item => {

@@ -70,6 +70,9 @@ export const checkPossibleLocations = createAsyncThunk(
       url: `${EBaseUrl.envApiLogistics}/Shipment/PossibleLocations/${trackingNumber}`,
     });
   },
+  {
+    serializeError: error => error,
+  },
 );
 
 export const deliveryShipment = createAsyncThunk(
@@ -80,6 +83,9 @@ export const deliveryShipment = createAsyncThunk(
       url: `${EBaseUrl.envApiLogistics}/Shipment/Give`,
       body: formData,
     });
+  },
+  {
+    serializeError: error => error,
   },
 );
 
