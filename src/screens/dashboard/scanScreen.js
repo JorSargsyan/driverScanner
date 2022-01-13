@@ -21,6 +21,7 @@ import {theme} from '../../../App';
 
 import Spinner from 'react-native-loading-spinner-overlay';
 import {Text, Button, Input, ListItem} from 'react-native-elements';
+import Toast from 'react-native-toast-message';
 
 import {
   selectShipments,
@@ -44,10 +45,7 @@ const OptionItem = ({item}) => {
         <ListItem.Subtitle>Հետևման կոդ</ListItem.Subtitle>
         <ListItem.Title>{item.trackingId}</ListItem.Title>
       </ListItem.Content>
-      <ListItem.Content>
-        <ListItem.Subtitle>Քաշ</ListItem.Subtitle>
-        <ListItem.Title>{item.totalWeight}</ListItem.Title>
-      </ListItem.Content>
+      <ListItem.Title>Քաշ: 100{item.totalWeight} գր.</ListItem.Title>
     </ListItem>
   );
 };
@@ -124,6 +122,12 @@ const ScanScreen = ({navigation, route}) => {
             resetScanner();
             setManualCode('');
             setManualModalVisible(false);
+
+            Toast.show({
+              type: 'success',
+              text1: 'Պարկը Սկանավորված է',
+              visibilityTime: 5000,
+            });
             return;
           } else {
             Alert.alert(
@@ -175,6 +179,11 @@ const ScanScreen = ({navigation, route}) => {
       resetScanner();
       setManualCode('');
       setManualModalVisible(false);
+      Toast.show({
+        type: 'success',
+        text1: 'Բեռնախումբը Սկանավորված է',
+        visibilityTime: 5000,
+      });
     } else {
       setIsLoading(false);
 
@@ -323,7 +332,7 @@ const ScanScreen = ({navigation, route}) => {
             {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
               <>
                 <Text style={styles.shipment}>
-                  {shipmentsData?.[actualShipmentCode]?.trackingId}
+                  Բեռնախումբ: {shipmentsData?.[actualShipmentCode]?.trackingId}
                 </Text>
                 <Counter
                   length={
@@ -336,12 +345,15 @@ const ScanScreen = ({navigation, route}) => {
           </View>
           <View style={styles.flatList}>
             {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
-              <FlatList
-                style={styles.flatList}
-                data={shipmentsData?.[actualShipmentCode]?.expectedBundles}
-                renderItem={({item}) => <OptionItem item={item} />}
-                keyExtractor={item => item.id}
-              />
+              <Fragment>
+                <Text style={styles.flatListTitle}>Պարկեր</Text>
+                <FlatList
+                  style={styles.flatList}
+                  data={shipmentsData?.[actualShipmentCode]?.expectedBundles}
+                  renderItem={({item}) => <OptionItem item={item} />}
+                  keyExtractor={item => item.id}
+                />
+              </Fragment>
             ) : (
               <>
                 {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
@@ -461,20 +473,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  flatList: {height: 200, paddingBottom: 20},
+  flatList: {height: 180, paddingBottom: 20},
+  flatListTitle: {
+    fontSize: 16,
+    paddingBottom: 5,
+    fontWeight: 'bold',
+  },
   counterText: {
     fontWeight: 'bold',
     color: 'white',
     fontSize: 19,
   },
   cameraContainer: {
-    height: Dimensions.get('screen').height / 2,
+    height: Dimensions.get('screen').height / 2.5,
     overflow: 'hidden',
   },
   container: {
     marginTop: 10,
     marginHorizontal: 16,
-    height: Dimensions.get('screen').height / 2,
   },
   labelStyle: {
     fontWeight: '600',
@@ -513,7 +529,8 @@ const styles = StyleSheet.create({
   },
   shipment: {
     color: 'black',
-    fontSize: 20,
+    fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 10,
   },
   optionTextWrapper: {
