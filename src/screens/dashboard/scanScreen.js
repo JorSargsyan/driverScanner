@@ -111,7 +111,7 @@ const ScanScreen = ({navigation, route}) => {
     if (meta.requestStatus !== 'fulfilled') {
       if (error.data.key === 'shipment_not_found') {
         //Bundle Scanned
-        if (shipmentsData) {
+        if (Object.keys(shipmentsData)?.length) {
           if (
             !shipmentsData[e.data]?.scannedBundleIds?.find(i => i === e.data)
           ) {
