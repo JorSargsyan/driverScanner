@@ -45,7 +45,7 @@ const OptionItem = ({item}) => {
         <ListItem.Subtitle>Հետևման կոդ</ListItem.Subtitle>
         <ListItem.Title>{item.trackingId}</ListItem.Title>
       </ListItem.Content>
-      <ListItem.Title>Քաշ: 100{item.totalWeight} գր.</ListItem.Title>
+      <ListItem.Title>Քաշ: {item.totalWeight} գր.</ListItem.Title>
     </ListItem>
   );
 };
