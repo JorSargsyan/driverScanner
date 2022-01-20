@@ -101,6 +101,23 @@ const scannedDataSlice = createSlice({
         isCompleted: false,
       };
     },
+    removeUnacceptedShipments(state) {
+      const removableShipments = [];
+      const newShipments = {...state.shipments};
+      Object.values(state.shipments).forEach(item => {
+        if (!item.isCompleted) {
+          removableShipments.push(item.trackingId);
+        }
+      });
+
+      Object.keys(state.shipments).forEach(tracking => {
+        if (removableShipments.includes(tracking)) {
+          delete newShipments[tracking];
+        }
+      });
+
+      state.shipments = newShipments;
+    },
     scanBundle(state, {payload}) {
       const actualShipment = state.shipments[payload.shipmentId];
       actualShipment.expectedBundles = actualShipment.expectedBundles.filter(
@@ -134,6 +151,7 @@ export const {
   scanBundle,
   setExpectedBundles,
   setShipmentCompleted,
+  removeUnacceptedShipments,
 } = scannedDataSlice.actions;
 
 export default scannedDataSlice.reducer;

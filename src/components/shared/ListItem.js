@@ -3,11 +3,17 @@ import {ListItem, Icon} from 'react-native-elements';
 import {Clipboard, StyleSheet} from 'react-native';
 import {format} from 'date-fns';
 import {theme} from '../../../App';
+import Toast from 'react-native-toast-message';
 
 const Item = ({data}) => {
   const handleCopy = () => {
     Clipboard.setString(data.trackingId);
-    alert('Կոդը պատճենված է');
+
+    Toast.show({
+      type: 'success',
+      text1: 'Կոդը պատճենված է',
+      visibilityTime: 5000,
+    });
   };
 
   return (

@@ -12,6 +12,8 @@ import {
   View,
 } from 'react-native';
 import {useSelector, useDispatch} from 'react-redux';
+import {useAndroidBackHandler} from 'react-navigation-backhandler';
+
 import QRCodeScanner from 'react-native-qrcode-scanner';
 
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -33,6 +35,7 @@ import {
   checkPossibleLocations,
   deliveryShipment,
   setShipmentCompleted,
+  removeUnacceptedShipments,
 } from '../../store/slicers/scannedData';
 import {getShipments} from '../../store/slicers/shipment';
 
@@ -89,10 +92,36 @@ const ScanScreen = ({navigation, route}) => {
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [actualShipmentCode, setActualShipmentCode] = useState('');
 
+  console.log(shipmentsData);
+
+  useAndroidBackHandler(() => {
+    const hasUnAcceptedShipment =
+      Object.values(shipmentsData).length &&
+      Object.values(shipmentsData).find(i => !i.isCompleted);
+    if (hasUnAcceptedShipment) {
+      Alert.alert(
+        'Վստահ եք՞',
+        'Չպահպանված տվյալները հեռացվելու են',
+        [
+          {text: 'Լավ', onPress: deleteShipments},
+          {text: 'Չեղարկել', onPress: () => false},
+        ],
+        {cancelable: true},
+      );
+      return true;
+    }
+    return false;
+  });
+
   const resetScanner = () => {
     setTimeout(() => {
       scannerRef.current?.reactivate();
     }, 3000);
+  };
+
+  const deleteShipments = async () => {
+    await dispatch(removeUnacceptedShipments());
+    navigation.navigate('Shipment');
   };
 
   const onAcceptSuccess = async e => {
@@ -100,7 +129,7 @@ const ScanScreen = ({navigation, route}) => {
       Alert.alert(
         '',
         'Բեռը արդեն հաստատված է',
-        [{text: 'OK', onPress: resetScanner}],
+        [{text: 'Լավ', onPress: resetScanner}],
         {cancelable: false},
       );
       return;
@@ -115,25 +144,49 @@ const ScanScreen = ({navigation, route}) => {
           if (
             !shipmentsData[e.data]?.scannedBundleIds?.find(i => i === e.data)
           ) {
-            dispatch(
-              scanBundle({shipmentId: actualShipmentCode, bundleId: e.data}),
-            );
+            const actualBundle = shipmentsData[
+              actualShipmentCode
+            ]?.expectedBundles.find(i => i.trackingId === e.data);
+            if (actualBundle) {
+              dispatch(
+                scanBundle({shipmentId: actualShipmentCode, bundleId: e.data}),
+              );
+
+              Toast.show({
+                type: 'success',
+                text1: 'Պարկը Սկանավորված է',
+                visibilityTime: 5000,
+              });
+            } else {
+              let errorMessage = '';
+              if (
+                shipmentsData[actualShipmentCode]?.scannedBundleIds.find(
+                  item => item === e.data,
+                )
+              ) {
+                errorMessage = 'Պարկը արդեն սկանավորված է';
+              } else {
+                errorMessage = 'Պարկը չի պատկանում տվյալ բեռնախմբին';
+              }
+
+              Alert.alert(
+                '',
+                errorMessage,
+                [{text: 'Լավ', onPress: resetScanner}],
+                {cancelable: false},
+              );
+            }
+
             setIsLoading(false);
-            resetScanner();
             setManualCode('');
             setManualModalVisible(false);
-
-            Toast.show({
-              type: 'success',
-              text1: 'Պարկը Սկանավորված է',
-              visibilityTime: 5000,
-            });
+            resetScanner();
             return;
           } else {
             Alert.alert(
               '',
               'Ծանրոցը արդեն սկանավորված է ',
-              [{text: 'OK', onPress: resetScanner}],
+              [{text: 'Լավ', onPress: resetScanner}],
               {cancelable: false},
             );
             setIsLoading(false);
@@ -143,7 +196,7 @@ const ScanScreen = ({navigation, route}) => {
           Alert.alert(
             '',
             'Անհրաժեշտ է սկանավորել բեռը',
-            [{text: 'OK', onPress: resetScanner}],
+            [{text: 'Լավ', onPress: resetScanner}],
             {cancelable: false},
           );
           setIsLoading(false);
@@ -156,21 +209,19 @@ const ScanScreen = ({navigation, route}) => {
     }
 
     if (payload.length) {
-      if (
-        Object.values(shipmentsData).length &&
-        Object.values(shipmentsData).find(
-          i => !i.isCompleted && i.scannedBundleIds?.length,
-        )
-      ) {
-        Alert.alert(
-          '',
-          'Անհրաժեշտ է հաստատել ներկայիս բեռը',
-          [{text: 'OK', onPress: resetScanner}],
-          {cancelable: false},
-        );
+      if (e.data === actualShipmentCode) {
         setIsLoading(false);
         resetScanner();
+        setManualCode('');
+        setManualModalVisible(false);
         return;
+      }
+
+      if (
+        Object.values(shipmentsData).length &&
+        Object.values(shipmentsData).find(i => !i.isCompleted)
+      ) {
+        await dispatch(removeUnacceptedShipments());
       }
       dispatch(scanShipment(e.data));
       setActualShipmentCode(e.data);
@@ -184,12 +235,20 @@ const ScanScreen = ({navigation, route}) => {
         text1: 'Բեռնախումբը Սկանավորված է',
         visibilityTime: 5000,
       });
+      setIsLoading(false);
+      resetScanner();
+      return;
     } else {
       setIsLoading(false);
 
-      Alert.alert('', 'Բեռը դատարկ է ', [{text: 'OK', onPress: resetScanner}], {
-        cancelable: false,
-      });
+      Alert.alert(
+        '',
+        'Բեռը դատարկ է ',
+        [{text: 'Լավ', onPress: resetScanner}],
+        {
+          cancelable: false,
+        },
+      );
     }
   };
 
@@ -203,7 +262,7 @@ const ScanScreen = ({navigation, route}) => {
       setIsLoading(false);
       const message = errorMessages[error.data?.key] || error.data?.key;
 
-      Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
+      Alert.alert('', message, [{text: 'Լավ', onPress: resetScanner}], {
         cancelable: false,
       });
       return;
@@ -234,7 +293,7 @@ const ScanScreen = ({navigation, route}) => {
         error.data.key === 'please_scan_all_bundles'
           ? 'Խնդրում ենք սկանավորել բոլոր պարկերը'
           : error.data.key;
-      Alert.alert('', message, [{text: 'OK', onPress: resetScanner}], {
+      Alert.alert('', message, [{text: 'Լավ', onPress: resetScanner}], {
         cancelable: false,
       });
       setIsLoading(false);
@@ -249,7 +308,7 @@ const ScanScreen = ({navigation, route}) => {
       'Բեռը ընդունված է',
       [
         {
-          text: 'OK',
+          text: 'Լավ',
           onPress: async () => {
             resetScanner();
             await dispatch(getShipments());
@@ -272,7 +331,7 @@ const ScanScreen = ({navigation, route}) => {
     );
     if (meta.requestStatus !== 'fulfilled') {
       setIsLoading(false);
-      Alert.alert('', error.data.key, [{text: 'OK', onPress: resetScanner}], {
+      Alert.alert('', error.data.key, [{text: 'Լավ', onPress: resetScanner}], {
         cancelable: false,
       });
       return;
@@ -280,10 +339,10 @@ const ScanScreen = ({navigation, route}) => {
     setIsLoading(false);
     Alert.alert(
       '',
-      `Հանձնված բեռների քանակը - ${payload?.length}`,
+      `Հանձնված պարկերի քանակը - ${payload?.length}`,
       [
         {
-          text: 'OK',
+          text: 'Լավ',
           onPress: async () => {
             resetScanner();
             await dispatch(getShipments());
