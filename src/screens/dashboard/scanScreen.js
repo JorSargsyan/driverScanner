@@ -1,4 +1,4 @@
-import React, {useRef, useState, Fragment} from 'react';
+import React, {useRef, useState, Fragment, useEffect, useCallback} from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -14,11 +14,8 @@ import {
 import {useSelector, useDispatch} from 'react-redux';
 import {useAndroidBackHandler} from 'react-navigation-backhandler';
 
-import QRCodeScanner from 'react-native-qrcode-scanner';
-
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-import {RNCamera} from 'react-native-camera';
 import {theme} from '../../../App';
 
 import Spinner from 'react-native-loading-spinner-overlay';
@@ -38,6 +35,7 @@ import {
   removeUnacceptedShipments,
 } from '../../store/slicers/scannedData';
 import {getShipments} from '../../store/slicers/shipment';
+import {useRoute} from '@react-navigation/native';
 
 const plusIcon = require('../../assets/icons/plus.png');
 
@@ -82,17 +80,19 @@ const errorMessages = {
 
 const ScanScreen = ({navigation, route}) => {
   const scannerRef = useRef();
+
   const dispatch = useDispatch();
   const [manualCode, setManualCode] = useState('');
   const shipmentsData = useSelector(selectShipments);
   const [isLoading, setIsLoading] = useState(false);
-  const {mode} = route.params;
+  const mode = route?.params?.mode;
+  const scannedData = route.params?.scannedData
+    ? JSON.parse(route.params?.scannedData)
+    : '';
   const [possibleWarehouses, setPossibleWarehouses] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [manualModalVisible, setManualModalVisible] = useState(false);
   const [actualShipmentCode, setActualShipmentCode] = useState('');
-
-  console.log(shipmentsData);
 
   useAndroidBackHandler(() => {
     const hasUnAcceptedShipment =
@@ -124,163 +124,177 @@ const ScanScreen = ({navigation, route}) => {
     navigation.navigate('Shipment');
   };
 
-  const onAcceptSuccess = async e => {
-    if (shipmentsData?.[e.data] && shipmentsData?.[e.data].isAccepted) {
-      Alert.alert(
-        '',
-        'Բեռը արդեն հաստատված է',
-        [{text: 'Լավ', onPress: resetScanner}],
-        {cancelable: false},
-      );
-      return;
-    }
-    setIsLoading(true);
-    const {meta, payload, error} = await dispatch(checkIsShipment(e.data));
+  const onAcceptSuccess = useCallback(
+    async e => {
+      if (shipmentsData?.[e.data] && shipmentsData?.[e.data].isAccepted) {
+        Alert.alert(
+          '',
+          'Բեռը արդեն հաստատված է',
+          [{text: 'Լավ', onPress: resetScanner}],
+          {cancelable: false},
+        );
+        return;
+      }
+      setIsLoading(true);
+      const {meta, payload, error} = await dispatch(checkIsShipment(e.data));
 
-    if (meta.requestStatus !== 'fulfilled') {
-      if (error.data.key === 'shipment_not_found') {
-        //Bundle Scanned
-        if (Object.keys(shipmentsData)?.length) {
-          if (
-            !shipmentsData[e.data]?.scannedBundleIds?.find(i => i === e.data)
-          ) {
-            const actualBundle = shipmentsData[
-              actualShipmentCode
-            ]?.expectedBundles.find(i => i.trackingId === e.data);
-            if (actualBundle) {
-              dispatch(
-                scanBundle({shipmentId: actualShipmentCode, bundleId: e.data}),
-              );
+      if (meta.requestStatus !== 'fulfilled') {
+        if (error.data.key === 'shipment_not_found') {
+          //Bundle Scanned
+          if (Object.keys(shipmentsData)?.length) {
+            if (
+              !shipmentsData[e.data]?.scannedBundleIds?.find(i => i === e.data)
+            ) {
+              const actualBundle = shipmentsData[
+                actualShipmentCode
+              ]?.expectedBundles.find(i => i.trackingId === e.data);
+              if (actualBundle) {
+                dispatch(
+                  scanBundle({
+                    shipmentId: actualShipmentCode,
+                    bundleId: e.data,
+                  }),
+                );
 
-              Toast.show({
-                type: 'success',
-                text1: 'Պարկը Սկանավորված է',
-                visibilityTime: 5000,
-              });
-            } else {
-              let errorMessage = '';
-              if (
-                shipmentsData[actualShipmentCode]?.scannedBundleIds.find(
-                  item => item === e.data,
-                )
-              ) {
-                errorMessage = 'Պարկը արդեն սկանավորված է';
+                Toast.show({
+                  type: 'success',
+                  text1: 'Պարկը Սկանավորված է',
+                  visibilityTime: 3000,
+                  position: 'bottom',
+                });
               } else {
-                errorMessage = 'Պարկը չի պատկանում տվյալ բեռնախմբին';
+                let errorMessage = '';
+                if (
+                  shipmentsData[actualShipmentCode]?.scannedBundleIds.find(
+                    item => item === e.data,
+                  )
+                ) {
+                  errorMessage = 'Պարկը արդեն սկանավորված է';
+                } else {
+                  errorMessage = 'Պարկը չի պատկանում տվյալ բեռնախմբին';
+                }
+
+                Alert.alert(
+                  '',
+                  errorMessage,
+                  [{text: 'Լավ', onPress: resetScanner}],
+                  {cancelable: false},
+                );
               }
 
+              setIsLoading(false);
+              setManualCode('');
+              setManualModalVisible(false);
+              resetScanner();
+              return;
+            } else {
               Alert.alert(
                 '',
-                errorMessage,
+                'Ծանրոցը արդեն սկանավորված է ',
                 [{text: 'Լավ', onPress: resetScanner}],
                 {cancelable: false},
               );
+              setIsLoading(false);
+              return;
             }
-
-            setIsLoading(false);
-            setManualCode('');
-            setManualModalVisible(false);
-            resetScanner();
-            return;
           } else {
             Alert.alert(
               '',
-              'Ծանրոցը արդեն սկանավորված է ',
+              'Անհրաժեշտ է սկանավորել բեռը',
               [{text: 'Լավ', onPress: resetScanner}],
               {cancelable: false},
             );
             setIsLoading(false);
             return;
           }
-        } else {
-          Alert.alert(
-            '',
-            'Անհրաժեշտ է սկանավորել բեռը',
-            [{text: 'Լավ', onPress: resetScanner}],
-            {cancelable: false},
-          );
+        }
+        setIsLoading(false);
+        resetScanner();
+        return;
+      }
+
+      if (payload.length) {
+        if (e.data === actualShipmentCode) {
           setIsLoading(false);
+          resetScanner();
+          setManualCode('');
+          setManualModalVisible(false);
           return;
         }
-      }
-      setIsLoading(false);
-      resetScanner();
-      return;
-    }
 
-    if (payload.length) {
-      if (e.data === actualShipmentCode) {
+        if (
+          Object.values(shipmentsData).length &&
+          Object.values(shipmentsData).find(i => !i.isCompleted)
+        ) {
+          await dispatch(removeUnacceptedShipments());
+        }
+        dispatch(scanShipment(e.data));
+        setActualShipmentCode(e.data);
+        dispatch(setExpectedBundles({list: payload, shipmentId: e.data}));
         setIsLoading(false);
         resetScanner();
         setManualCode('');
         setManualModalVisible(false);
+        Toast.show({
+          type: 'success',
+          text1: 'Բեռնախումբը Սկանավորված է',
+          visibilityTime: 3000,
+          position: 'bottom',
+        });
+        setIsLoading(false);
+        resetScanner();
+        return;
+      } else {
+        setIsLoading(false);
+
+        Alert.alert(
+          '',
+          'Բեռը դատարկ է ',
+          [{text: 'Լավ', onPress: resetScanner}],
+          {
+            cancelable: false,
+          },
+        );
+      }
+    },
+    [actualShipmentCode, dispatch, shipmentsData],
+  );
+
+  const onDeliverSuccess = useCallback(
+    async e => {
+      setIsLoading(true);
+      const {meta, payload, error} = await dispatch(
+        checkPossibleLocations(e.data),
+      );
+
+      if (meta.requestStatus !== 'fulfilled') {
+        setIsLoading(false);
+        const message = errorMessages[error.data?.key] || error.data?.key;
+
+        Alert.alert('', message, [{text: 'Լավ', onPress: resetScanner}], {
+          cancelable: false,
+        });
         return;
       }
-
-      if (
-        Object.values(shipmentsData).length &&
-        Object.values(shipmentsData).find(i => !i.isCompleted)
-      ) {
-        await dispatch(removeUnacceptedShipments());
-      }
-      dispatch(scanShipment(e.data));
       setActualShipmentCode(e.data);
-      dispatch(setExpectedBundles({list: payload, shipmentId: e.data}));
+      setPossibleWarehouses(payload);
+      setModalVisible(true);
+
       setIsLoading(false);
-      resetScanner();
-      setManualCode('');
-      setManualModalVisible(false);
-      Toast.show({
-        type: 'success',
-        text1: 'Բեռնախումբը Սկանավորված է',
-        visibilityTime: 5000,
-      });
-      setIsLoading(false);
-      resetScanner();
-      return;
-    } else {
-      setIsLoading(false);
+    },
+    [dispatch],
+  );
 
-      Alert.alert(
-        '',
-        'Բեռը դատարկ է ',
-        [{text: 'Լավ', onPress: resetScanner}],
-        {
-          cancelable: false,
-        },
-      );
-    }
-  };
-
-  const onDeliverSuccess = async e => {
-    setIsLoading(true);
-    const {meta, payload, error} = await dispatch(
-      checkPossibleLocations(e.data),
-    );
-
-    if (meta.requestStatus !== 'fulfilled') {
-      setIsLoading(false);
-      const message = errorMessages[error.data?.key] || error.data?.key;
-
-      Alert.alert('', message, [{text: 'Լավ', onPress: resetScanner}], {
-        cancelable: false,
-      });
-      return;
-    }
-    setActualShipmentCode(e.data);
-    setPossibleWarehouses(payload);
-    setModalVisible(true);
-
-    setIsLoading(false);
-  };
-
-  const onSuccess = async e => {
-    if (mode === 'accept') {
-      onAcceptSuccess(e);
-    } else {
-      onDeliverSuccess(e);
-    }
-  };
+  const onSuccess = useCallback(
+    async e => {
+      if (mode === 'accept') {
+        onAcceptSuccess(e);
+      } else {
+        onDeliverSuccess(e);
+      }
+    },
+    [mode, onAcceptSuccess, onDeliverSuccess],
+  );
 
   const handlePressSubmit = async () => {
     setIsLoading(true);
@@ -356,9 +370,31 @@ const ScanScreen = ({navigation, route}) => {
     );
   };
 
+  const handleNavigateScan = () => {
+    let isShipment = !Object.keys(shipmentsData).length;
+    navigation.navigate('Scanner', {mode, isShipment});
+  };
+
+  useEffect(() => {
+    if (!scannedData?.barcodes?.length) {
+      return;
+    }
+    const barcodes = scannedData.barcodes.map(i => i.value);
+
+    onSuccess({data: barcodes?.[0]});
+    navigation.setParams({scannedData: null, mode});
+  }, [mode, navigation, onSuccess, scannedData]);
+
   return (
     <KeyboardAvoidingView behavior="height">
-      <SafeAreaView>
+      <SafeAreaView
+        // eslint-disable-next-line react-native/no-inline-styles
+        style={{
+          ...styles.contentContainer,
+          ...(shipmentsData?.[actualShipmentCode]?.expectedBundles
+            ? styles.justifyFlexStart
+            : styles.justifyCenter),
+        }}>
         <Spinner visible={isLoading} />
         <Modal
           animationType="slide"
@@ -379,31 +415,23 @@ const ScanScreen = ({navigation, route}) => {
             })}
           </ScrollView>
         </Modal>
-        <View style={styles.cameraContainer}>
-          <QRCodeScanner
-            ref={scannerRef}
-            onRead={onSuccess}
-            flashMode={RNCamera.Constants.FlashMode.auto}
-          />
-        </View>
         <View style={styles.container}>
-          <View style={styles.headerContainer}>
-            {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
-              <>
-                <Text style={styles.shipment}>
-                  Բեռնախումբ: {shipmentsData?.[actualShipmentCode]?.trackingId}
-                </Text>
-                <Counter
-                  length={
-                    shipmentsData?.[actualShipmentCode]?.expectedBundles
-                      ?.length || 0
-                  }
-                />
-              </>
-            )}
-          </View>
-          <View style={styles.flatList}>
-            {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
+          {!!shipmentsData?.[actualShipmentCode]?.expectedBundles?.length && (
+            <View style={styles.headerContainer}>
+              <Text style={styles.shipment}>
+                Բեռնախումբ: {shipmentsData?.[actualShipmentCode]?.trackingId}
+              </Text>
+              <Counter
+                length={
+                  shipmentsData?.[actualShipmentCode]?.expectedBundles
+                    ?.length || 0
+                }
+              />
+            </View>
+          )}
+
+          {shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ? (
+            <View style={styles.flatList}>
               <Fragment>
                 <Text style={styles.flatListTitle}>Պարկեր</Text>
                 <FlatList
@@ -413,42 +441,50 @@ const ScanScreen = ({navigation, route}) => {
                   keyExtractor={item => item.id}
                 />
               </Fragment>
-            ) : (
-              <>
-                {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
-                shipmentsData[actualShipmentCode]?.scannedBundleIds?.length ? (
+            </View>
+          ) : (
+            <>
+              {!shipmentsData[actualShipmentCode]?.expectedBundles?.length &&
+              shipmentsData[actualShipmentCode]?.scannedBundleIds?.length ? (
+                <View style={styles.flatList}>
                   <View style={styles.noBundleContainer}>
                     <Text style={styles.noBundleText}>
                       Բոլոր պարկերը ընդունված են: Կարող եք հաստատել բեռնախումբը
                     </Text>
                   </View>
-                ) : null}
-              </>
-            )}
-          </View>
-          <View style={styles.manualScanBtnContainer}>
+                </View>
+              ) : null}
+            </>
+          )}
+          <View>
+            <View style={styles.manualScanBtnContainer}>
+              <Button title={'Սկանավորել'} onPress={handleNavigateScan} />
+            </View>
+
+            <View style={styles.manualScanBtnContainer}>
+              <Button
+                labelStyle={styles.labelStyle}
+                enableShadow
+                title="Մուտքագրել կոդը"
+                onPress={() => setManualModalVisible(true)}
+              />
+            </View>
+
             <Button
+              disabled={
+                !(
+                  shipmentsData?.[actualShipmentCode]?.expectedBundles
+                    ?.length === 0
+                )
+              }
+              title="Հաստատել"
               labelStyle={styles.labelStyle}
               enableShadow
-              title="Մուտքագրել կոդը"
-              onPress={() => setManualModalVisible(true)}
+              iconSource={plusIcon}
+              iconStyle={styles.iconStyle}
+              onPress={handlePressSubmit}
             />
           </View>
-
-          <Button
-            disabled={
-              !(
-                shipmentsData?.[actualShipmentCode]?.expectedBundles?.length ===
-                0
-              )
-            }
-            title="Հաստատել"
-            labelStyle={styles.labelStyle}
-            enableShadow
-            iconSource={plusIcon}
-            iconStyle={styles.iconStyle}
-            onPress={handlePressSubmit}
-          />
         </View>
       </SafeAreaView>
       <Modal
@@ -528,11 +564,17 @@ const styles = StyleSheet.create({
   noBundleContainer: {
     alignItems: 'center',
   },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  justifyFlexStart: {
+    justifyContent: 'flex-start',
+  },
   noBundleText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
-  flatList: {height: 180, paddingBottom: 20},
+  flatList: {height: 350, paddingBottom: 20},
   flatListTitle: {
     fontSize: 16,
     paddingBottom: 5,
@@ -543,13 +585,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 19,
   },
-  cameraContainer: {
-    height: Dimensions.get('screen').height / 2.5,
-    overflow: 'hidden',
+  contentContainer: {
+    height: Dimensions.get('screen').height,
+    display: 'flex',
   },
   container: {
-    marginTop: 10,
+    marginTop: 40,
     marginHorizontal: 16,
+    display: 'flex',
+    justifyContent: 'center',
   },
   labelStyle: {
     fontWeight: '600',

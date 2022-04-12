@@ -6,7 +6,7 @@ import LoginScreen from '../screens/login';
 import ScanScreen from '../screens/dashboard/scanScreen';
 import ShipmentScreen from '../screens/dashboard/shipment';
 import BundleScreen from '../screens/dashboard/bundle';
-
+import ScannerView from '../screens/dashboard/scanBarcode';
 import {useSelector, useDispatch} from 'react-redux';
 import {
   selectAuthStatus,
@@ -79,6 +79,7 @@ const Routes = () => {
         screenOptions={{headerShown: false}}>
         <ShipmentStack.Screen name="Shipment" component={ShipmentScreen} />
         <ShipmentStack.Screen name="Scan" component={ScanScreen} />
+        <ShipmentStack.Screen name="Scanner" component={ScannerView} />
       </ShipmentStack.Navigator>
     );
   };

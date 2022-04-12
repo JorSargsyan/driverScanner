@@ -7,6 +7,9 @@ import {NavigationContainer} from '@react-navigation/native';
 import {ThemeProvider} from 'react-native-elements';
 import Toast, {BaseToast, ErrorToast} from 'react-native-toast-message';
 import {View, Text} from 'react-native';
+import AnylineOCR from 'anyline-ocr-react-native-module';
+import {BarcodeBundleConfig} from './config/barcode';
+import {useEffect} from 'react';
 
 export const theme = {
   colors: {
@@ -67,6 +70,14 @@ const toastConfig = {
 };
 
 const App = () => {
+  const initScanner = () => {
+    AnylineOCR.initSdk(BarcodeBundleConfig.license);
+  };
+
+  useEffect(() => {
+    initScanner();
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <NavigationContainer>

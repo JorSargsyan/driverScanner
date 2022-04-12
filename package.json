@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
+    "link": "react-native link",
     "android-release": "react-native run-android --variant=release",
+    "grclean": "cd android && ./gradlew clean",
+    "grbuild": "cd android && ./gradlew assembleRelease",
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
@@ -17,6 +20,7 @@
     "@react-navigation/native": "^6.0.2",
     "@react-navigation/stack": "^6.0.7",
     "@reduxjs/toolkit": "^1.5.1",
+    "anyline-ocr-react-native-module": "^38.0.1",
     "date-fns": "^2.23.0",
     "expo-barcode-scanner": "^11.1.2",
     "nanoid": "^3.1.23",

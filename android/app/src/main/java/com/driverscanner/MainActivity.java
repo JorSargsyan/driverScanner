@@ -1,4 +1,4 @@
-package com.driverscanner;
+package com.anyline.example.reactnative;
 
 import com.facebook.react.ReactActivity;
 

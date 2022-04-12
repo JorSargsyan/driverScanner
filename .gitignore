@@ -5,6 +5,7 @@
 # Xcode
 #
 build/
+bugreport/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -30,8 +31,10 @@ local.properties
 *.iml
 
 # node.js
-#
+
 node_modules/
+
+#!node_modules/anyline-ocr-react-native-module/
 npm-debug.log
 yarn-error.log
 
