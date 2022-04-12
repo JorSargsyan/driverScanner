@@ -11,7 +11,8 @@
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.15.4",
@@ -24,6 +25,7 @@
     "date-fns": "^2.23.0",
     "expo-barcode-scanner": "^11.1.2",
     "nanoid": "^3.1.23",
+    "patch-package": "^6.4.7",
     "react": "17.0.1",
     "react-native": "0.64.1",
     "react-native-camera": "^3.43.6",
