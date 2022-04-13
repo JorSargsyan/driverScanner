@@ -134,6 +134,9 @@ const scannedDataSlice = createSlice({
         ? (state.shipments[payload].isCompleted = true)
         : undefined;
     },
+    resetShipmentData(state) {
+      state.shipments = {};
+    },
   },
   extraReducers: builder => {
     builder.addCase(getUserByToken.fulfilled, (state, {payload}) => {
@@ -152,6 +155,7 @@ export const {
   setExpectedBundles,
   setShipmentCompleted,
   removeUnacceptedShipments,
+  resetShipmentData,
 } = scannedDataSlice.actions;
 
 export default scannedDataSlice.reducer;

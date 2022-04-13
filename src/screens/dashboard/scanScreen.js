@@ -33,9 +33,9 @@ import {
   deliveryShipment,
   setShipmentCompleted,
   removeUnacceptedShipments,
+  resetShipmentData,
 } from '../../store/slicers/scannedData';
 import {getShipments} from '../../store/slicers/shipment';
-import {useRoute} from '@react-navigation/native';
 
 const plusIcon = require('../../assets/icons/plus.png');
 
@@ -286,11 +286,13 @@ const ScanScreen = ({navigation, route}) => {
   );
 
   const onSuccess = useCallback(
-    async e => {
+    async barcodes => {
       if (mode === 'accept') {
-        onAcceptSuccess(e);
+        barcodes.forEach(item => {
+          onAcceptSuccess({data: item});
+        });
       } else {
-        onDeliverSuccess(e);
+        onDeliverSuccess({data: barcodes[0]});
       }
     },
     [mode, onAcceptSuccess, onDeliverSuccess],
@@ -325,6 +327,7 @@ const ScanScreen = ({navigation, route}) => {
           text: 'Լավ',
           onPress: async () => {
             resetScanner();
+            dispatch(resetShipmentData());
             await dispatch(getShipments());
             navigation.navigate('Shipment');
           },
@@ -381,7 +384,7 @@ const ScanScreen = ({navigation, route}) => {
     }
     const barcodes = scannedData.barcodes.map(i => i.value);
 
-    onSuccess({data: barcodes?.[0]});
+    onSuccess(barcodes);
     navigation.setParams({scannedData: null, mode});
   }, [mode, navigation, onSuccess, scannedData]);
 
@@ -457,18 +460,24 @@ const ScanScreen = ({navigation, route}) => {
             </>
           )}
           <View>
-            <View style={styles.manualScanBtnContainer}>
-              <Button title={'Սկանավորել'} onPress={handleNavigateScan} />
-            </View>
+            {!(
+              shipmentsData?.[actualShipmentCode]?.expectedBundles?.length === 0
+            ) && (
+              <Fragment>
+                <View style={styles.manualScanBtnContainer}>
+                  <Button title={'Սկանավորել'} onPress={handleNavigateScan} />
+                </View>
 
-            <View style={styles.manualScanBtnContainer}>
-              <Button
-                labelStyle={styles.labelStyle}
-                enableShadow
-                title="Մուտքագրել կոդը"
-                onPress={() => setManualModalVisible(true)}
-              />
-            </View>
+                <View style={styles.manualScanBtnContainer}>
+                  <Button
+                    labelStyle={styles.labelStyle}
+                    enableShadow
+                    title="Մուտքագրել կոդը"
+                    onPress={() => setManualModalVisible(true)}
+                  />
+                </View>
+              </Fragment>
+            )}
 
             <Button
               disabled={
@@ -520,7 +529,7 @@ const ScanScreen = ({navigation, route}) => {
               enableShadow
               iconSource={plusIcon}
               iconStyle={styles.iconStyle}
-              onPress={() => onSuccess({data: manualCode.toUpperCase()})}
+              onPress={() => onSuccess([manualCode.toUpperCase()])}
             />
           </View>
         </View>
