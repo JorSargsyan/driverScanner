@@ -6,8 +6,8 @@
 // }
 
 export enum EBaseUrl {
-  envApiIdentity = 'https://id.devhaypost.com/Api',
-  envApiCustomer = 'https://cu.devhaypost.com/Api',
-  envApiLogistics = 'https://lg.devhaypost.com/Api',
-  envApiOrder = 'https://or.devhaypost.com/Api',
+  envApiIdentity = 'https://identity.haypost.am/Api',
+  envApiCustomer = 'https://customer.haypost.am/Api',
+  envApiLogistics = 'https://logistics.haypost.am/Api',
+  envApiOrder = 'https://order.haypost.am/Api',
 }

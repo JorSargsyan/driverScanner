@@ -1,5 +1,4 @@
 import React from 'react';
-
 import store from './src/store';
 import {Provider} from 'react-redux';
 import Routes from './src/routing';
@@ -70,14 +69,6 @@ const toastConfig = {
 };
 
 const App = () => {
-  const initScanner = () => {
-    AnylineOCR.initSdk(BarcodeBundleConfig.license);
-  };
-
-  useEffect(() => {
-    initScanner();
-  }, []);
-
   return (
     <ThemeProvider theme={theme}>
       <NavigationContainer>
