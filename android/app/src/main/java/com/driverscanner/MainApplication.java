@@ -1,4 +1,4 @@
-package com.anyline.example.reactnative;
+package io.anyline.examples;
 
 import android.app.Application;
 import android.content.Context;

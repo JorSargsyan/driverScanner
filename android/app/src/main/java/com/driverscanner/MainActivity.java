@@ -1,4 +1,4 @@
-package com.anyline.example.reactnative;
+package io.anyline.examples;
 
 import com.facebook.react.ReactActivity;
 import android.os.Bundle;
