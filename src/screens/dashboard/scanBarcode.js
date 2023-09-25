@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import AnylineOCR from 'anyline-ocr-react-native-module';
+import {useSelector} from 'react-redux';
 import {
   BarcodeBundleConfig,
   BarcodeShipmentConfig,
@@ -11,6 +12,7 @@ import {
   LayoutAnimation,
   PermissionsAndroid,
 } from 'react-native';
+import {selectScanMode} from '../../store/slicers/app';
 
 const permissionMessages = {
   title: 'Anyline Camera Permissions',
@@ -21,7 +23,6 @@ const AnylineBarcodeScanner = () => {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const mode = route?.params?.mode;
   const scannerType = 'BARCODE';
   const isShipment = route?.params?.isShipment;
   const openAnyline = async type => {
@@ -34,7 +35,7 @@ const AnylineBarcodeScanner = () => {
       );
       LayoutAnimation.easeInEaseOut();
 
-      navigation.navigate('Scan', {scannedData: result || [], mode});
+      navigation.navigate('Scan', {scannedData: result || []});
     } catch (error) {
       if (error.message !== 'Canceled') {
         console.log(error.message);

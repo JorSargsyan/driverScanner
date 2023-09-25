@@ -7,6 +7,7 @@ import {getUserByToken} from '../../store/slicers/scannedData';
 import HeaderDS from '../../components/ui/header';
 import {theme} from '../../../App';
 import Item from '../../components/shared/ListItem';
+import {selectScanMode, setScanMode} from '../../store/slicers/app';
 
 const EmptyComponent = () => {
   return (
@@ -39,11 +40,13 @@ const Shipment = ({navigation}) => {
   };
 
   const handleAccept = () => {
-    navigation.navigate('Scan', {mode: 'accept'});
+    dispatch(setScanMode('accept'));
+    navigation.navigate('Scan');
   };
 
   const handleDeliver = () => {
-    navigation.navigate('Scan', {mode: 'delivery'});
+    dispatch(setScanMode('delivery'));
+    navigation.navigate('Scan');
   };
 
   return (

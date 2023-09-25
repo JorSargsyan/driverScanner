@@ -13,11 +13,14 @@ export type IRefreshToken = {
   accessToken: string;
   expDate?: string;
   refreshToken: string;
+  scanMode: 'delivery' | 'accept' | null;
 };
+
 const initialState = {
   isAuthenticated: false,
   isLoading: false,
   isExpired: false,
+  scanMode: null,
 };
 
 const name = 'APP';
@@ -63,18 +66,23 @@ const appSlice = createSlice({
     setIsExpired(state) {
       state.isExpired = true;
     },
+    setScanMode(state, {payload}) {
+      state.scanMode = payload;
+    },
   },
 });
 
 export const selectAuthStatus = (state: any) => state.app.isAuthenticated;
 export const selectIsLoading = (state: any) => state.app.isLoading;
 export const selectIsExpired = (state: any) => state.app.isExpired;
+export const selectScanMode = (state: any) => state.app.scanMode;
 
 export const {
   signOut,
   setAuth,
   loadingStateOff,
   loadingStateOn,
+  setScanMode,
   setIsExpired,
 } = appSlice.actions;
 

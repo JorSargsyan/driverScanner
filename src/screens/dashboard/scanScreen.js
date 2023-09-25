@@ -36,6 +36,7 @@ import {
   resetShipmentData,
 } from '../../store/slicers/scannedData';
 import {getShipments} from '../../store/slicers/shipment';
+import {selectScanMode} from '../../store/slicers/app';
 
 const plusIcon = require('../../assets/icons/plus.png');
 
@@ -85,7 +86,8 @@ const ScanScreen = ({navigation, route}) => {
   const [manualCode, setManualCode] = useState('');
   const shipmentsData = useSelector(selectShipments);
   const [isLoading, setIsLoading] = useState(false);
-  const mode = route?.params?.mode;
+  const mode = useSelector(selectScanMode);
+
   const scannedData = route.params?.scannedData
     ? JSON.parse(route.params?.scannedData)
     : '';
@@ -375,7 +377,7 @@ const ScanScreen = ({navigation, route}) => {
 
   const handleNavigateScan = () => {
     let isShipment = !Object.keys(shipmentsData).length;
-    navigation.navigate('Scanner', {mode, isShipment});
+    navigation.navigate('Scanner', {isShipment});
   };
 
   useEffect(() => {
@@ -464,6 +466,13 @@ const ScanScreen = ({navigation, route}) => {
               shipmentsData?.[actualShipmentCode]?.expectedBundles?.length === 0
             ) && (
               <Fragment>
+                <View>
+                  <Text style={styles.title}>
+                    {mode === 'accept'
+                      ? 'Ընդունել Բեռնախումբ'
+                      : 'Հանձնել բեռնախումբ'}
+                  </Text>
+                </View>
                 <View style={styles.manualScanBtnContainer}>
                   <Button title={'Սկանավորել'} onPress={handleNavigateScan} />
                 </View>
@@ -539,6 +548,11 @@ const ScanScreen = ({navigation, route}) => {
 };
 
 const styles = StyleSheet.create({
+  title: {
+    fontSize: 24,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   modalContainer: {
     justifyContent: 'center',
   },
@@ -572,6 +586,7 @@ const styles = StyleSheet.create({
   },
   noBundleContainer: {
     alignItems: 'center',
+    marginTop: 30,
   },
   justifyCenter: {
     justifyContent: 'center',
@@ -638,6 +653,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
+    marginTop: 25,
   },
   shipment: {
     color: 'black',
