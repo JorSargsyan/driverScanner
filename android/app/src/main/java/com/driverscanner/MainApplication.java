@@ -1,10 +1,9 @@
-package io.anyline.examples;
+package com.postman.phoenix;
 
 import android.app.Application;
 import android.content.Context;
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
-import com.anyline.reactnative.AnylinePackage;
 import com.oblador.vectoricons.VectorIconsPackage;
 import com.reactnativecommunity.asyncstorage.AsyncStoragePackage;
 import com.zoontek.rnpermissions.RNPermissionsPackage;

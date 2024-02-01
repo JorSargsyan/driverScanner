@@ -1,4 +1,4 @@
-package io.anyline.examples;
+package com.postman.phoenix;
 
 import com.facebook.react.ReactActivity;
 import android.os.Bundle;
